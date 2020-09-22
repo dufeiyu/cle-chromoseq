@@ -410,13 +410,12 @@ for v in passedvars.items():
         if (variant.INFO.get('CONTIGHITS') is not None):
             numhits = variant.INFO.get('CONTIGHITS')
 
-        knowngenes1 = list(gs1.intersection(knowngenelist))
-        knowngenes2 = list(gs2.intersection(knowngenelist))
-        knowngenes1.sort()
-        knowngenes2.sort()
-        knowngenes = knowngenes1 + knowngenes2
+        knowngenes1 = gs1.intersection(knowngenelist)
+        knowngenes2 = gs2.intersection(knowngenelist)
+        knowngenes = list(knowngenes1.union(knowngenes2))
+        knowngenes.sort() 
 
-        knowngenestring = ",".join(knowngenes1) + '--' + ",".join(knowngenes2)
+        knowngenestring = ",".join(knowngenes)
         if len(knowngenes) == 0:
             knowngenestring = 'None'
                                 
