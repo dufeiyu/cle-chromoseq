@@ -14,7 +14,8 @@ my $slop = 200;
 my $masklevel = 0.8;
 my $PR = 2;
 my $SR = 2;
-my $delcovratio = 0.7;
+my $minSVabund = 5.0;
+my $delcovratio = 0.8;
 my $dupcovratio = 1.3;
     
 my $minMQ = 0;
@@ -31,7 +32,8 @@ $0 -k <knowntrans bedpe> <gzipped vcf> <out vcf name>
     [ manta hit filtering ] 
     -m masklevel
     -pr PR reads
-    -sr SR reads    
+    -sr SR reads
+    -a min VAF/SVabund
     -l slop length for known translocations
     -q min map quality of contig hits
     -i min fraction identity for contig hits
@@ -46,6 +48,7 @@ END
 
 GetOptions("pr=i" => \$PR,
 	   "sr=i" => \$SR,
+	   "a=f" => \$minSVabund,
 	   "b=s" => \$bedtools,
 	   "s=s" => \$svtools,
 	   "p=s" => \$minimap,
@@ -235,11 +238,16 @@ while(<VCF>){
     # add hotspot tag, if exists
     $F[7] .= ";KNOWNSV=" . $knowntrans{$F[2]} if (defined($knowntrans{$F[2]}));	           
     
-    # add low reads filter if PR and SR reads are low
-    if (!defined($fmt{PR}) or !defined($fmt{SR}) or $fmt{PR}->[1] < $PR or $fmt{SR}->[1] < $SR){
+    # add low reads filter if PR and SR reads are low or VAF is too low
+    my $svabund = 0.0;
+    if (defined($fmt{PR}) and defined($fmt{SR}) and (max(@{$fmt{PR}}) + max(@{$fmt{SR}})) > 0){
+	$svabund = (($fmt{PR}->[1] + $fmt{SR}->[1]) / ($fmt{PR}->[0] + $fmt{PR}->[1] + $fmt{SR}->[0] + $fmt{SR}->[1])) * 100;
+    }
+    
+    if (!defined($fmt{PR}) or !defined($fmt{SR}) or $fmt{PR}->[1] < $PR or $fmt{SR}->[1] < $SR or $svabund < $minSVabund){
 	$F[6] = "LowReads";
 	
-    } elsif (defined($fmt{DHFFC}) and defined($fmt{DHBFC}) and ($svtype =~ /DEL/ and $fmt{DHFFC} > $delcovratio) or ($svtype =~ /DUP/ and $fmt{DHBFC} < $dupcovratio)){ #(SVTYPE = "DEL" & FMT/DHFFC[0] < 0.7) | (SVTYPE = "DUP" & FMT/DHBFC[0] > 1.3)'
+    } elsif (defined($fmt{DHFFC}) and defined($fmt{DHBFC}) and ($svtype =~ /DEL/ and $fmt{DHFFC} > $delcovratio) or ($svtype =~ /DUP/ and $fmt{DHBFC} < $dupcovratio)){
 	$F[6] = "FailedCov";
 	
 	# add no contig filter if no contig/imprecise breakends
