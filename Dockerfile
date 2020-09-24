@@ -165,9 +165,14 @@ RUN cd /tmp/ && \
 ENV CONDA_DIR /opt/conda
 ENV PATH $CONDA_DIR/bin:$PATH
 
+#originally installed 
+#https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh, which is 
+#https://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh
+#this is python 3.8, but cyvcf2. a necessary package for make_report[3].py, only has builds
+#switching to current for python 3.7
 RUN cd /tmp && \
     mkdir -p $CONDA_DIR && \
-    curl -s https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh -o miniconda.sh && \
+    curl -s https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.2-Linux-x86_64.sh -o miniconda.sh && \
     /bin/bash miniconda.sh -f -b -p $CONDA_DIR && \
     rm miniconda.sh && \
     $CONDA_DIR/bin/conda config --system --add channels conda-forge && \
@@ -179,17 +184,15 @@ RUN conda config --add channels bioconda && \
     conda install -c anaconda biopython scipy cython cyvcf2 && \
     conda install -y -c bioconda mosdepth
 
-RUN cd /tmp && git clone https://github.com/pysam-developers/pysam.git && \
-    cd pysam && \
-    export HTSLIB_LIBRARY_DIR=$HTSLIB_INSTALL_DIR/lib && \
-    export HTSLIB_INCLUDE_DIR=$HTSLIB_INSTALL_DIR/include && \
-    python setup.py install
+# NOTE- I think this is just for script addReadCountsToVcfCRAM
+RUN conda install -y pysam
 
 # Install Python 2 
 RUN conda create --quiet --yes -p $CONDA_DIR/envs/python2 python=2.7 'pip' && \
     conda clean -tipsy && \
     /bin/bash -c "source activate python2 && \
     conda install -c anaconda svtools && \
+    conda install -c bioconda bcftools && \
     source deactivate"
 
 #
@@ -241,8 +244,8 @@ RUN mkdir -p /tmp/ucsc && \
 
 WORKDIR /usr/local/bin
 RUN git clone https://github.com/GavinHaLab/ichorCNA.git
-RUN git checkout ae0e8770f3e76ade1359c2be8278c7fb7c74cab9 
-RUN Rscript -e "install.packages(c('plyr', 'optparse','BiocManager')); BiocManager::install(c('HMMcopy','GenomeInfoDb','GenomicRanges'))"
+RUN cd ichorCNA && git checkout -b bugfix_rollback b2bbce0a9997f31733f0f0ea4278cfba937ded41
+RUN Rscript -e "install.packages(c('plyr', 'optparse','BiocManager', 'foreach', 'doMC')); BiocManager::install(c('HMMcopy','GenomeInfoDb','GenomicRanges'))"
 RUN R CMD INSTALL ichorCNA
 
 
@@ -331,6 +334,11 @@ COPY accessory_files/hg38.cytoBandIdeo.bed.gz /opt/files/hg38.cytoBandIdeo.bed.g
 COPY accessory_files/hg38.cytoBandIdeo.bed.gz.tbi /opt/files/hg38.cytoBandIdeo.bed.gz.tbi
 COPY accessory_files/chromoseq_sv_filter.bedpe.gz /opt/files/chromoseq_sv_filter.bedpe.gz
 COPY accessory_files/chromoseq_translocations.bedpe /opt/files/chromoseq_translocations.bedpe
+
+COPY accessory_files/chromoseq_custom_anntations.040920.vcf.gz /opt/files/chromoseq_custom_anntations.040920.vcf.gz
+COPY accessory_files/chromoseq_custom_anntations.040920.vcf.gz.tbi /opt/files/chromoseq_custom_anntations.040920.vcf.gz.tbi
+COPY accessory_files/chromoseq_hotspot.vcf.gz /opt/files/chromoseq_hotspot.vcf.gz
+COPY accessory_files/chromoseq_hotspot.vcf.gz.tbi /opt/files/chromoseq_hotspot.vcf.gz.tbi
 
 #COPY driver.py /opt/files/driver.py
 
