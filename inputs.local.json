@@ -40,6 +40,6 @@
     "Chromoseq.LowCNAabund":10.0,
     "ChromoSeq.Queue": "compute-mgi-cle",
     "ChromoSeq.JobGroup": "/cle/wdl/chromoseq",
-    "ChromoSeq.chromoseq_docker": "mgibio/basespace_chromoseq:latest"
+    "ChromoSeq.chromoseq_docker": "registry.gsc.wustl.edu/mgi-cle/basespace_chromoseq:v13"
 }
 
