@@ -5,10 +5,10 @@ use JSON;
 use File::Spec;
 use Getopt::Long;
 
-my $base_dir = '/gscmnt/gc13016/cle/54f8f7b915cb472aa183c721307369ab_scratch_space/ChromoSeq/git/docker-basespace_chromoseq';
-my $inputs = File::Spec->join($base_dir, 'inputs.local.json');
-my $wdl    = File::Spec->join($base_dir, 'Chromoseq.wdl'); 
-my $conf   = File::Spec->join($base_dir, 'application.conf');
+my $base_dir = '/gscmnt/gc13016/cle/54f8f7b915cb472aa183c721307369ab_scratch_space/ChromoSeq/git/cle-chromoseq';
+my $json = File::Spec->join($base_dir, 'inputs.local.json');
+my $wdl  = File::Spec->join($base_dir, 'Chromoseq.wdl'); 
+my $conf = File::Spec->join($base_dir, 'application.conf');
 
 my $group  = '/cle/wdl/chromoseq';
 my $queue  = 'compute-mgi-cle';
@@ -23,7 +23,7 @@ my $testing = 0;
 
 GetOptions(
     "gender=s" => \$gender,
-    "i|inputs=s" => \$inputs,
+    "i|inputs=s" => \$json,
     "w|wdl=s" => \$wdl,
     "d|dir=s" => \$dir,
     "n|name=s" => \$name,
@@ -33,8 +33,9 @@ GetOptions(
 );
 
 die "$0 -d dir -n name -o out" if !-d $dir and !$name and !-d $out;
+die "Input json, wdl, conf is(are) not valid" unless -s $json and -s $wdl and -s $conf;
 
-my $inputs = from_json(`cat $inputs`);
+my $inputs = from_json(`cat $json`);
 
 chomp ($wdl = `readlink -f $wdl`);
 
