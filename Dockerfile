@@ -240,7 +240,8 @@ RUN mkdir -p /tmp/ucsc && \
 ############
 
 WORKDIR /usr/local/bin
-RUN git clone https://github.com/broadinstitute/ichorCNA.git
+RUN git clone https://github.com/GavinHaLab/ichorCNA.git
+RUN git checkout ae0e8770f3e76ade1359c2be8278c7fb7c74cab9 
 RUN Rscript -e "install.packages(c('plyr', 'optparse','BiocManager')); BiocManager::install(c('HMMcopy','GenomeInfoDb','GenomicRanges'))"
 RUN R CMD INSTALL ichorCNA
 
@@ -311,26 +312,27 @@ RUN cd / && \
 
 RUN mkdir /opt/files/
 
-COPY addReadCountsToVcfCRAM.py /usr/local/bin/addReadCountsToVcfCRAM.py
-COPY duphold_static /usr/local/bin/duphold_static
-COPY FilterManta.pl /usr/local/bin/FilterManta.pl
-COPY ichorToVCF.pl /usr/local/bin/ichorToVCF.pl
-COPY make_report.py /usr/local/bin/make_report.py
-COPY configManta.hg38.py.ini /opt/files/configManta.hg38.py.ini
-COPY nextera_hg38_500kb_median_normAutosome_median.rds_median.n9.gr.rds /opt/files/nextera_hg38_500kb_median_normAutosome_median.rds_median.n9.gr.rds
-COPY basespace_cromwell.config /opt/files/basespace_cromwell.config
+COPY scripts/addReadCountsToVcfCRAM.py /usr/local/bin/addReadCountsToVcfCRAM.py
+COPY scripts/duphold_static /usr/local/bin/duphold_static
+COPY scripts/FilterManta.pl /usr/local/bin/FilterManta.pl
+COPY scripts/ichorToVCF.pl /usr/local/bin/ichorToVCF.pl
+COPY scripts/make_report.py /usr/local/bin/make_report.py
 
-COPY all_sequences.fa.bed.gz /opt/files/all_sequences.fa.bed.gz
-COPY all_sequences.fa.bed.gz.tbi /opt/files/all_sequences.fa.bed.gz.tbi
-COPY all_sequences.fa.fai /opt/files/all_sequences.fa.fai
+COPY accessory_files/configManta.hg38.py.ini /opt/files/configManta.hg38.py.ini
+COPY accessory_files/nextera_hg38_500kb_median_normAutosome_median.rds_median.033020.XY_median.rds /opt/files/nextera_hg38_500kb_median_normAutosome_median.rds_median.033020.XY_median.rds
+#COPY basespace_cromwell.config /opt/files/basespace_cromwell.config
 
-COPY chromoseq_genes.bed /opt/files/chromoseq_genes.bed
-COPY hg38.cytoBandIdeo.bed.gz /opt/files/hg38.cytoBandIdeo.bed.gz
-COPY hg38.cytoBandIdeo.bed.gz.tbi /opt/files/hg38.cytoBandIdeo.bed.gz.tbi
-COPY chromoseq_sv_filter.bedpe.gz /opt/files/chromoseq_sv_filter.bedpe.gz
-COPY chromoseq_translocations.bedpe /opt/files/chromoseq_translocations.bedpe
+COPY accessory_files/all_sequences.fa.bed.gz /opt/files/all_sequences.fa.bed.gz
+COPY accessory_files/all_sequences.fa.bed.gz.tbi /opt/files/all_sequences.fa.bed.gz.tbi
+#COPY all_sequences.fa.fai /opt/files/all_sequences.fa.fai
 
-COPY driver.py /opt/files/driver.py
+COPY accessory_files/chromoseq_genes.bed /opt/files/chromoseq_genes.bed
+COPY accessory_files/hg38.cytoBandIdeo.bed.gz /opt/files/hg38.cytoBandIdeo.bed.gz
+COPY accessory_files/hg38.cytoBandIdeo.bed.gz.tbi /opt/files/hg38.cytoBandIdeo.bed.gz.tbi
+COPY accessory_files/chromoseq_sv_filter.bedpe.gz /opt/files/chromoseq_sv_filter.bedpe.gz
+COPY accessory_files/chromoseq_translocations.bedpe /opt/files/chromoseq_translocations.bedpe
+
+#COPY driver.py /opt/files/driver.py
 
 RUN chmod a+wrx /opt/files/*
 RUN chmod a+wrx /usr/local/bin/*
