@@ -386,7 +386,7 @@ task run_ichor {
   command <<<
     set -eo pipefail && \
     tail -n +6 ${tumorCounts} | sort -k 1V,1 -k 2n,2 | awk -v window=500000 'BEGIN { chr=""; } { if ($1!=chr){ printf("fixedStep chrom=%s start=1 step=%d span=%d\n",$1,window,window); chr=$1; } print $5; }' > "${Name}.tumor.wig" && \
-    /usr/local/bin/Rscript /gscmnt/gc2555/spencer/dhs/git/ichorCNA/scripts/runIchorCNA.R --id ${Name} \
+    /usr/local/bin/Rscript /usr/local/bin/ichorCNA/scripts/runIchorCNA.R --id ${Name} \
     --WIG "${Name}.tumor.wig" --ploidy "c(2)" --normal "c(0.1,0.5,.85)" --maxCN 3 \
     --gcWig ${gcWig} \
     --mapWig ${mapWig} \
@@ -396,7 +396,7 @@ task run_ichor {
     --sex ${gender} \
     --includeHOMD False --chrs "c(1:22, \"X\", \"Y\")" --chrTrain "c(1:22)" --fracReadsInChrYForMale 0.0005 \
     --estimateNormal True --estimatePloidy True --estimateScPrevalence True \
-    --txnE 0.999999 --txnStrength 1000000 --genomeStyle ${genomeStyle} --outDir ./ --libdir /gscmnt/gc2555/spencer/dhs/git/ichorCNA/ && \
+    --txnE 0.999999 --txnStrength 1000000 --genomeStyle ${genomeStyle} --outDir ./ --libdir /usr/local/bin/ichorCNA/ && \
     awk -v G=${gender} '$2!~/Y/ || G=="male"' "${Name}.seg.txt" > "${Name}.segs.txt" && \
     mv ${Name}/*.pdf .
   >>>
@@ -482,7 +482,7 @@ task run_detect_flt3itd {
     /opt/conda/envs/python2/bin/bcftools merge --force-samples -O z ./manta/results/variants/tumorSV.vcf.gz ${Name}.pindel.vcf.gz > ${tmp}/combined.vcf.gz &&
     /opt/conda/bin/tabix -p vcf ${tmp}/combined.vcf.gz && \
     /opt/conda/envs/python2/bin/bcftools norm -d none -f ${refFasta} -O z ${tmp}/combined.vcf.gz > ${tmp}/combined.norm.vcf.gz && /usr/bin/tabix -p vcf ${tmp}/combined.norm.vcf.gz && \
-    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/docker-basespace_chromoseq/fixITDs.py -r ${refFasta} ${tmp}/combined.norm.vcf.gz | \
+    /opt/conda/bin/python /usr/local/bin/fixITDs.py -r ${refFasta} ${tmp}/combined.norm.vcf.gz | \
     /opt/conda/envs/python2/bin/bcftools norm -d none -f ${refFasta} | bgzip -c > ${Name}.flt3itd.vcf.gz && \
     /usr/bin/tabix -p vcf ${Name}.flt3itd.vcf.gz
   >>>
@@ -515,7 +515,7 @@ task combine_variants {
   command {
     /opt/conda/envs/python2/bin/bcftools merge --force-samples -O z ${sep=" " VCFs} | \
     /opt/conda/envs/python2/bin/bcftools norm -d none -f ${refFasta} -O z > ${tmp}/combined.vcf.gz && /usr/bin/tabix -p vcf ${tmp}/combined.vcf.gz && \
-    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/docker-basespace_chromoseq/addReadCountsToVcfCRAM8.py -f -n ${MinReads} -v ${MinVAF} -r ${refFasta} ${tmp}/combined.vcf.gz ${Bam} ${Name} | \
+    /opt/conda/bin/python /usr/local/bin/addReadCountsToVcfCRAM.py -f -n ${MinReads} -v ${MinVAF} -r ${refFasta} ${tmp}/combined.vcf.gz ${Bam} ${Name} | \
     /opt/conda/bin/bgzip -c > ${Name}.combined_tagged.vcf.gz && /usr/bin/tabix -p vcf ${Name}.combined_tagged.vcf.gz
   }
   runtime {
@@ -595,12 +595,12 @@ task annotate_svs {
   
   command {
     set -eo pipefail && \
-    perl /gscmnt/gc2555/spencer/dhs/git/docker-basespace_chromoseq/ichorToVCF.pl -g ${gender} -minsize ${minCNAsize} \
+    perl /usr/local/bin/ichorToVCF.pl -g ${gender} -minsize ${minCNAsize} \
     -minabund ${minCNAabund} -lowsize ${lowCNAsize} \
     -lowabund ${lowCNAabund} -r ${refFasta} ${CNV} | /opt/conda/bin/bgzip -c > cnv.vcf.gz && \
     /opt/htslib/bin/tabix -p vcf cnv.vcf.gz && \
     /opt/conda/envs/python2/bin/bcftools query -l cnv.vcf.gz > name.txt && \
-    perl /gscmnt/gc2555/spencer/dhs/git/docker-basespace_chromoseq/FilterManta.pl -a ${minCNAabund} -r ${refFasta} -k ${Translocations} ${Vcf} filtered.vcf && \
+    perl /usr/local/bin/FilterManta.pl -a ${minCNAabund} -r ${refFasta} -k ${Translocations} ${Vcf} filtered.vcf && \
     /opt/conda/envs/python2/bin/svtools afreq filtered.vcf | \
     /opt/conda/envs/python2/bin/svtools vcftobedpe -i stdin | \
     /opt/conda/envs/python2/bin/svtools varlookup -d 200 -c BLACKLIST -a stdin -b ${SVAnnot} | \
@@ -686,7 +686,7 @@ task make_report {
   
   command <<<
     cat ${MappingSummary} ${CoverageSummary} | cut -d ',' -f 3,4 | sort -u > qc.txt && \
-    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/docker-basespace_chromoseq/make_report4.py ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} > "${Name}.chromoseq.txt"
+    /opt/conda/bin/python /usr/local/bin/make_report.py ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} > "${Name}.chromoseq.txt"
   >>>
   
   runtime {

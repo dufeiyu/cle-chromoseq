@@ -319,6 +319,7 @@ COPY scripts/addReadCountsToVcfCRAM.py /usr/local/bin/addReadCountsToVcfCRAM.py
 COPY scripts/duphold_static /usr/local/bin/duphold_static
 COPY scripts/FilterManta.pl /usr/local/bin/FilterManta.pl
 COPY scripts/ichorToVCF.pl /usr/local/bin/ichorToVCF.pl
+COPY scripts/fixITDs.py /usr/local/bin/fixITDs.py
 COPY scripts/make_report.py /usr/local/bin/make_report.py
 
 COPY accessory_files/configManta.hg38.py.ini /opt/files/configManta.hg38.py.ini
