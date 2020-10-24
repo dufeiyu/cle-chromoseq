@@ -291,31 +291,31 @@ for v in passedvars.items():
                 
             elif bands[0].find('p') > -1:
                 bands.reverse()
-                psyntax = "del(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
+                psyntax = "seq[GRCh38] del(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
                 
             else:
-                psyntax = "del(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
+                psyntax = "seq[GRCh38] del(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
             
         elif vartype == 'DUP':
-            csyntax = chr1 + ":g." + str(pos1) + "_" + str(pos2) + "gain"
+            csyntax = chr1 + ":g." + str(pos1) + "_" + str(pos2) + "dup"
             if bands[0].find('p') > -1 and bands[-1].find('q') > -1:
                 psyntax = "+" + chr1.replace('chr','')
                 
             elif bands[0].find('p') > -1:
                 bands.reverse()
-                psyntax = "gain(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
+                psyntax = "seq[GRCh38] dup(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
                 
             else:
-                psyntax = "gain(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
+                psyntax = "seq[GRCh38] dup(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
 
         elif vartype == 'INV':
             csyntax = chr1 + ":g." + str(pos1) + "_" + str(pos2) + "inv"
             if bands[0].find('p') > -1:
                 bands.reverse()
-                psyntax = "inv(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
+                psyntax = "seq[GRCh38] inv(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
                 
             else:
-                psyntax = "inv(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
+                psyntax = "seq[GRCh38] inv(" + chr1.replace('chr','') + ")(" + bands[0] + bands[-1] + ")"
             
         # abundance
         abundance = 0.0
@@ -428,10 +428,10 @@ for v in passedvars.items():
         psyntax = '';
         if (chr1.find('X') == -1 and chr2.find('X') == -1 and chr1.find('Y') == -1 and chr2.find('Y') == -1 and int(chr1.replace('chr','')) < int(chr2.replace('chr',''))) or chr1.find('X') > -1 or chr1.find('Y') > -1: # this isnt working. Want to list lower chromosome first in these strings. If X is involved, then X first.
             csyntax = chr1 + ":g." + str(pos1) + "(+)::" + chr2 + ":g." + str(pos2) + "(" + strand + ")"
-            psyntax = 't(' + chr1.replace('chr','') + ';' + chr2.replace('chr','') + ')(' + bands1[0] + ';' + bands2[0] + ')'
+            psyntax = 'seq[GRCh38] t(' + chr1.replace('chr','') + ';' + chr2.replace('chr','') + ')(' + bands1[0] + ';' + bands2[0] + ')'
         else:
             csyntax = chr2 + ":g." + str(pos2) + "(+)::" + chr1 + ":g." + str(pos1) + "(" + strand + ")"
-            psyntax = 't(' + chr2.replace('chr','') + ';' + chr1.replace('chr','') + ')(' + bands2[0] + ';' + bands1[0] + ')'
+            psyntax = 'seq[GRCh38] t(' + chr2.replace('chr','') + ';' + chr1.replace('chr','') + ')(' + bands2[0] + ';' + bands1[0] + ')'
                 
         out = [vartype,chr1,str(pos1),chr2,str(pos2),"NA",bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(numhits),str(variant.ID) + ";" + str(mate.ID),str(round(abundance,1))+"%",str(pr[1]) + '/' + str(pr[0]+pr[1]),str(sr[1]) + '/' + str(sr[0]+sr[1]),str(variant.INFO.get('CONTIG'))]
 
