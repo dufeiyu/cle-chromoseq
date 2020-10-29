@@ -81,7 +81,7 @@ while(<CNV>){
     next if $svlen < $minCNAsize or $abund < $minCNAabund;
 
     # Filter low abundance CNAs to a larger size
-    next if $abund <= 10 and $svlen <= $minLowCNAsize;
+    next if $abund <= $minLowCNAabund and $svlen <= $minLowCNAsize;
     
     $svlen = -$svlen if $svtype eq 'DEL';
     print join("\t",$F[1],$F[2]-1,"ICHOR:$F[1]_$F[2]_$F[3]",$refnt,"<$svtype>",".","PASS",
