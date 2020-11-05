@@ -8,18 +8,14 @@ sub ratio2abundance;
 
 my $refseq = "~/refdata/hg38/all_sequences.fa";
 
-my $minCNAsize = 2000000;
+my $minCNAsize = 5000000;
 my $minCNAabund = 5;
-my $minLowCNAabund = 10;
-my $minLowCNAsize = 50000000;
 my $gender = '';
 
 GetOptions("r=s" => \$refseq,
 	   "g=s" => \$gender,
 	   "s|minsize=i" => \$minCNAsize,
-	   "f|minabund=f" => \$minCNAabund,
-	   "l|lowsize=i" => \$minLowCNAsize,
-	   "m|lowabund=f" => \$minLowCNAabund);
+	   "f|minabund=f" => \$minCNAabund);
 
 my $segsfile = $ARGV[0];
 
@@ -30,6 +26,8 @@ my $name = basename($segsfile,".segs.txt");
 print <<EOF;
 ##fileformat=VCFv4.2
 ##source=ichorCNA
+##FILTER=<ID=CNASize,Description="CNA size filter">
+##FILTER=<ID=CNAAbundance,Description="CNA abundance filter"> 
 ##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="Imprecise structural variation">
 ##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
 ##INFO=<ID=LOG2RATIO,Number=.,Type=Float,Description="Log2 ratio from CNV analysis">
@@ -41,7 +39,7 @@ print <<EOF;
 ##INFO=<ID=set,Number=1,Type=String,Description="Source VCF for the merged record in CombineVariants">
 ##INFO=<ID=CN,Number=.,Type=Integer,Description="Integer copy number estimate from CNV analysis">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-##FilterICHOR="minCNAsize:$minCNAsize; minCNAabund=$minCNAabund; lowSize=$minLowCNAsize; lowAbund: $minLowCNAabund"
+##FilterICHOR="minCNAsize:$minCNAsize; minCNAabund=$minCNAabund"
 #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$name
 EOF
 
@@ -77,14 +75,17 @@ while(<CNV>){
 
     my $abund = sprintf("%.1f",ratio2abundance($F[6],$nl,$F[5]) * 100);
 
+    my @filter = ();
+    
     # Filter if too small or too low
-    next if $svlen < $minCNAsize or $abund < $minCNAabund;
+    push @filter, 'CNASize' if $svlen < $minCNAsize;
+    push @filter, 'CNAAbundance' if $abund < $minCNAabund;
 
-    # Filter low abundance CNAs to a larger size
-    next if $abund <= $minLowCNAabund and $svlen <= $minLowCNAsize;
+    my $filter = join(',',@filter);
+    $filter = 'PASS' if scalar @filter == 0;
     
     $svlen = -$svlen if $svtype eq 'DEL';
-    print join("\t",$F[1],$F[2]-1,"ICHOR:$F[1]_$F[2]_$F[3]",$refnt,"<$svtype>",".","PASS",
+    print join("\t",$F[1],$F[2]-1,"ICHOR:$F[1]_$F[2]_$F[3]",$refnt,"<$svtype>",".",$filter,
 		 join(";","SVTYPE=$svtype","LOG2RATIO=$F[5]","CN=$F[6]","ABUNDANCE=$abund","CNBINS=$F[4]","POS=".($F[2]-1),"END=$F[3]","SVLEN=$svlen","IMPRECISE"),
 		 "GT","./."),"\n";
 }

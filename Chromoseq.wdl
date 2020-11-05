@@ -40,15 +40,13 @@ workflow ChromoSeq {
 
   String tmp
   
-  Float minVarFreq = 0.02
-  Int MinReads = 3
-  Float varscanPvalindel = 0.1
-  Float varscanPvalsnv = 0.01
+  Float minVarFreq
+  Int MinReads
+  Float varscanPvalindel
+  Float varscanPvalsnv
 
-  Int MinCNASize = 2000000
+  Int MinCNASize = 5000000
   Float MinCNAabund = 5.0
-  Int LowCNASize = 50000000
-  Float LowCNAabund = 10.0
   
   String JobGroup
   String Queue
@@ -194,8 +192,6 @@ workflow ChromoSeq {
     Cytobands=Cytobands,
     minCNAsize=MinCNASize,
     minCNAabund=MinCNAabund,
-    lowCNAsize=LowCNASize,
-    lowCNAabund=LowCNAabund,
     Name=Name,
     gender=Gender,
     queue=Queue,
@@ -221,6 +217,7 @@ workflow ChromoSeq {
     KnownGenes=prepare_bed.genes,
     GeneQC=gene_qc.qc_out,
     SVQC=sv_qc.qc_out,
+    Haplotect=run_haplotect.out_file,
     MappingSummary=MappingSummary,
     CoverageSummary=CoverageSummary,
     Name=Name,
@@ -233,6 +230,8 @@ workflow ChromoSeq {
   call gather_files {
     input: OutputFiles=[annotate_svs.vcf,
     annotate_svs.vcf_index,
+    annotate_svs.allvcf,
+    annotate_svs.allvcf_index,
     run_varscan.varscan_snv_file,
     run_varscan.varscan_indel_file,
     run_detect_flt3itd.vcf,
@@ -375,10 +374,6 @@ task run_ichor {
   String mapWig
   String ponRds
   String centromeres
-  
-  Int? minCNAsize
-  Float? lowAbundVal
-  Int? lowAbundCnaSize
   
   String? tmp
   String docker
@@ -587,8 +582,6 @@ task annotate_svs {
   String Cytobands
   Int? minCNAsize
   Float? minCNAabund
-  Int? lowCNAsize
-  Float? lowCNAabund
   
   String? tmp
   String docker
@@ -596,8 +589,7 @@ task annotate_svs {
   command {
     set -eo pipefail && \
     perl /usr/local/bin/ichorToVCF.pl -g ${gender} -minsize ${minCNAsize} \
-    -minabund ${minCNAabund} -lowsize ${lowCNAsize} \
-    -lowabund ${lowCNAabund} -r ${refFasta} ${CNV} | /opt/conda/bin/bgzip -c > cnv.vcf.gz && \
+    -minabund ${minCNAabund} -r ${refFasta} ${CNV} | /opt/conda/bin/bgzip -c > cnv.vcf.gz && \
     /opt/htslib/bin/tabix -p vcf cnv.vcf.gz && \
     /opt/conda/envs/python2/bin/bcftools query -l cnv.vcf.gz > name.txt && \
     perl /usr/local/bin/FilterManta.pl -a ${minCNAabund} -r ${refFasta} -k ${Translocations} ${Vcf} filtered.vcf && \
@@ -610,8 +602,11 @@ task annotate_svs {
     /opt/htslib/bin/tabix -p vcf filtered.tagged.reheader.vcf.gz && \
     /opt/conda/envs/python2/bin/bcftools concat -a cnv.vcf.gz filtered.tagged.reheader.vcf.gz | \
     /usr/local/bin/bedtools sort -header -g ${refFastaIndex} -i stdin > svs.vcf && \
-    /opt/conda/envs/python2/bin/python /usr/local/src/manta/libexec/convertInversion.py /usr/local/bin/samtools ${refFasta} svs.vcf | /opt/conda/bin/bgzip -c > svs.vcf.gz && \
-    /usr/bin/perl -I /opt/lib/perl/VEP/Plugins /usr/bin/variant_effect_predictor.pl --format vcf --vcf --fasta ${refFasta} --per_gene --symbol --term SO -o ${Name}.svs_annotated.vcf -i svs.vcf.gz --custom ${Cytobands},cytobands,bed --offline --cache --dir ${Vepcache} && \
+    /opt/conda/envs/python2/bin/python /usr/local/src/manta/libexec/convertInversion.py /usr/local/bin/samtools ${refFasta} svs.vcf | /opt/conda/bin/bgzip -c > ${Name}.all_svs.vcf.gz && \
+    /opt/htslib/bin/tabix -p vcf ${Name}.all_svs.vcf.gz && \
+    /opt/conda/envs/python2/bin/bcftools view -O z -i 'KNOWNSV!="." || (FILTER=="PASS" && (BLACKLIST_AF=="." || BLACKLIST_AF==0)) || LOG2RATIO!="."' ${Name}.all_svs.vcf.gz > svs_filtered.vcf.gz && \
+    /opt/htslib/bin/tabix -p vcf svs_filtered.vcf.gz && \
+    /usr/bin/perl -I /opt/lib/perl/VEP/Plugins /usr/bin/variant_effect_predictor.pl --format vcf --vcf --fasta ${refFasta} --per_gene --symbol --term SO -o ${Name}.svs_annotated.vcf -i svs_filtered.vcf.gz --custom ${Cytobands},cytobands,bed --offline --cache --dir ${Vepcache} && \
     /opt/htslib/bin/bgzip -c ${Name}.svs_annotated.vcf > ${Name}.svs_annotated.vcf.gz && \
     /opt/htslib/bin/tabix -p vcf ${Name}.svs_annotated.vcf.gz
   }
@@ -627,6 +622,8 @@ task annotate_svs {
   output {
     File vcf = "${Name}.svs_annotated.vcf.gz"
     File vcf_index = "${Name}.svs_annotated.vcf.gz.tbi"
+    File allvcf = "${Name}.all_svs.vcf.gz"
+    File allvcf_index = "${Name}.all_svs.vcf.gz.tbi"
   }
 }
 
@@ -672,6 +669,7 @@ task make_report {
   String KnownGenes
   String MappingSummary
   String? CoverageSummary
+  String Haplotect
   String SVQC
   String GeneQC
   String Name
@@ -686,7 +684,7 @@ task make_report {
   
   command <<<
     cat ${MappingSummary} ${CoverageSummary} | cut -d ',' -f 3,4 | sort -u > qc.txt && \
-    /opt/conda/bin/python /usr/local/bin/make_report.py ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} > "${Name}.chromoseq.txt"
+    /opt/conda/bin/python /usr/local/bin/make_report.py ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} > "${Name}.chromoseq.txt"
   >>>
   
   runtime {
