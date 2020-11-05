@@ -240,19 +240,22 @@ while(<VCF>){
     
     # add low reads filter if PR and SR reads are low or VAF is too low
     my $svabund = 0.0;
+    my @filter = ();
+    @filter = split(',',$F[6]) if $F[6] ne 'PASS';
+    
     if (defined($fmt{PR}) and defined($fmt{SR}) and (max(@{$fmt{PR}}) + max(@{$fmt{SR}})) > 0){
 	$svabund = (($fmt{PR}->[1] + $fmt{SR}->[1]) / ($fmt{PR}->[0] + $fmt{PR}->[1] + $fmt{SR}->[0] + $fmt{SR}->[1])) * 100;
     }
     
     if (!defined($fmt{PR}) or !defined($fmt{SR}) or $fmt{PR}->[1] < $PR or $fmt{SR}->[1] < $SR or $svabund < $minSVabund){
-	$F[6] = "LowReads";
+	push @filter, "LowReads";
 	
     } elsif (defined($fmt{DHFFC}) and defined($fmt{DHBFC}) and ($svtype =~ /DEL/ and $fmt{DHFFC} > $delcovratio) or ($svtype =~ /DUP/ and $fmt{DHBFC} < $dupcovratio)){
-	$F[6] = "FailedCov";
+	push @filter, "FailedCov";
 	
 	# add no contig filter if no contig/imprecise breakends
     } elsif ($F[7] !~ /CONTIG=/ or !defined($hits{$F[2]})){
-	$F[6] = "FailedContig";
+	push @filter, "FailedContig";
 	
     } else {
 	
@@ -294,9 +297,12 @@ while(<VCF>){
 			       $i->[3] eq $chr1 && $pos1 < $i->[5]+$slop && $pos1 > $i->[4]-$slop)) &&
 			       (($orientation eq 'same' && $i->[8] eq $i->[9]) || ($orientation eq 'opposite' && $i->[8] ne $i->[9])));
 		}
-	$F[6] = ($foundhit ? "PASS" : "FailedContig");
+	push @filter, "FailedContig" if $foundhit;
 	
     }
+    $F[6] = join(',',@filter);
+    $F[6] = "PASS" if scalar @filter == 0;
+    
     print O join("\t",@F),"\n";
 }
 close VCF;

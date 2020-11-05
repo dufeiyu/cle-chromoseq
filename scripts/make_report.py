@@ -94,13 +94,12 @@ MinFracRegion10 = 95
 MinRegionCov = 10
 
 
-(script, Name, genevcf_file, svvcf_file, genelist, mapsum, genecov, svcov) = sys.argv
+(script, Name, genevcf_file, svvcf_file, genelist, mapsum, genecov, svcov, haplotect) = sys.argv
 
 # variants to print out
 vars = {}
 vars['knownsv'] = []
 vars['cna'] = []
-vars['knowngenes'] = []
 vars['genelevel'] = []
 vars['novelsv'] = []
 
@@ -206,16 +205,16 @@ svcsq_fields = parse_csq_header(svvcf)
 
 for variant in svvcf:
 
-    vartype = variant.INFO.get('SVTYPE')
+#    vartype = variant.INFO.get('SVTYPE')
 
-    filter = 'PASS'
-    if variant.FILTER is not None:
-        filter = variant.FILTER
+#    filter = 'PASS'
+#    if variant.FILTER is not None:
+#        filter = variant.FILTER
 
     # the only filtering done in this script--return only known or novel SVs
-    if variant.INFO.get('KNOWNSV') is not None or (filter is 'PASS' and (variant.INFO.get('BLACKLIST_AF') == 0 or variant.INFO.get('BLACKLIST_AF') is None)):
-#        if variant.INFO.get('CN') is None or (variant.INFO.get('CN') is not None and variant.INFO.get('CNBINS') >= mincnbins):
-        passedvars[variant.ID] = variant
+    #    if variant.INFO.get('KNOWNSV') is not None or (filter is 'PASS' and (variant.INFO.get('BLACKLIST_AF') == 0 or variant.INFO.get('BLACKLIST_AF') is None)):
+    #        if variant.INFO.get('CN') is None or (variant.INFO.get('CN') is not None and variant.INFO.get('CNBINS') >= mincnbins):
+    passedvars[variant.ID] = variant
 
 # done with first pass
 
@@ -329,7 +328,8 @@ for v in passedvars.items():
             
             abundance = variant.INFO.get('ABUNDANCE') #((2**variant.INFO.get('LOG2RATIO') - 1.0) / ((CN/2.0 - 1.0)))*100;
 
-            out = [vartype,chr1,str(pos1),chr2,str(pos2),str(svlen),bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(variant.ID),str(round(abundance,1))+"%",str(variant.INFO.get('CN')),str(round(variant.INFO.get('LOG2RATIO'),3))]
+            infostring = 'CN=' + str(variant.INFO.get('CN')) + ';LOG2RATIO=' + str(round(variant.INFO.get('LOG2RATIO'),3))
+            out = [vartype,chr1,str(pos1),chr2,str(pos2),str(svlen),bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(variant.ID),str(round(abundance,1))+"%",infostring]
                 
         elif variant.format("SR") is not None and variant.format("PR")[0] is not None:
             sr = variant.format("SR")[0]
@@ -340,8 +340,9 @@ for v in passedvars.items():
             numhits = '.'
             if (variant.INFO.get('CONTIGHITS') is not None):
                 numhits = variant.INFO.get('CONTIGHITS')
-            
-            out = [vartype,chr1,str(pos1),chr2,str(pos2),str(svlen),bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(numhits),str(variant.ID),str(round(abundance,1))+"%",str(pr[1]) + '/' + str(pr[0]+pr[1]),str(sr[1]) + '/' + str(sr[0]+sr[1]),str(variant.INFO.get('CONTIG'))]
+
+            infostring = 'PR_READS=' + str(pr[1]) + '/' + str(pr[0]+pr[1]) + ';SR_READS=' + str(sr[1]) + '/' + str(sr[0]+sr[1]) + ';CONTIG=' + str(variant.INFO.get('CONTIG'))
+            out = [vartype,chr1,str(pos1),chr2,str(pos2),str(svlen),bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(variant.ID),str(round(abundance,1))+"%",infostring]
                 
     elif vartype == 'BND':
 
@@ -432,20 +433,18 @@ for v in passedvars.items():
         else:
             csyntax = chr2 + ":g." + str(pos2) + "(+)::" + chr1 + ":g." + str(pos1) + "(" + strand + ")"
             psyntax = 'seq[GRCh38] t(' + chr2.replace('chr','') + ';' + chr1.replace('chr','') + ')(' + bands2[0] + ';' + bands1[0] + ')'
-                
-        out = [vartype,chr1,str(pos1),chr2,str(pos2),"NA",bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(numhits),str(variant.ID) + ";" + str(mate.ID),str(round(abundance,1))+"%",str(pr[1]) + '/' + str(pr[0]+pr[1]),str(sr[1]) + '/' + str(sr[0]+sr[1]),str(variant.INFO.get('CONTIG'))]
+
+        infostring = 'PR_READS=' + str(pr[1]) + '/' + str(pr[0]+pr[1]) + ';SR_READS=' + str(sr[1]) + '/' + str(sr[0]+sr[1]) + ';CONTIG=' + str(variant.INFO.get('CONTIG')) + ';'
+        out = [vartype,chr1,str(pos1),chr2,str(pos2),"NA",bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(variant.ID) + ";" + str(mate.ID),str(round(abundance,1))+"%",infostring]
 
         alreadydone.add(variant.ID)
         
     if isknown == 1:
         vars['knownsv'].append(out)
         
-    elif variant.INFO.get('LOG2RATIO') is not None:
+    elif variant.INFO.get('LOG2RATIO') is not None and filter is 'PASS':
         vars['cna'].append(out)
 
-    elif len(knowngenes) > 0:
-        vars['knowngenes'].append(out)
-        
     else:
         vars['novelsv'].append(out)
 
@@ -454,7 +453,7 @@ print("ChromoSeq Report for " + Name + " ---- Generated on: " + strftime("%Y-%m-
 
 print("*** COPY NUMBER ALTERATIONS ***\n")
 if len(vars['cna']) > 0:
-    print("\t".join(('TYPE','CHR1','POS1','CHR2','POS2','LENGTH','BANDS','KNOWN_GENES','HGVS-LIKE','ISCN-LIKE','TOTAL_GENES','FILTERS','ID','ABUNDANCE','PLOIDY','LOG2RATIO')))
+    print("\t".join(('TYPE','CHR1','POS1','CHR2','POS2','LENGTH','BANDS','KNOWN_GENES','HGVS-LIKE','ISCN-LIKE','TOTAL_GENES','FILTERS','ID','ABUNDANCE','INFO')))
     for i in vars['cna']:
         print("\t".join(i))
     print()        
@@ -463,7 +462,7 @@ else:
 
 print("*** RECURRENT TRANSLOCATIONS ***\n")
 if len(vars['knownsv']) > 0:
-    print("\t".join(('TYPE','CHR1','POS1','CHR2','POS2','LENGTH','BANDS','KNOWN_GENES','HGVS-LIKE','ISCN-LIKE','TOTAL_GENES','FILTERS','CONTIG_HITS','ID','ABUNDANCE','SR_READS','PR_READS','CONTIG')))
+    print("\t".join(('TYPE','CHR1','POS1','CHR2','POS2','LENGTH','BANDS','KNOWN_GENES','HGVS-LIKE','ISCN-LIKE','TOTAL_GENES','FILTERS','ID','ABUNDANCE','INFO')))
     for i in vars['knownsv']:
         print("\t".join(i))
     print()
@@ -479,18 +478,9 @@ if len(vars['genelevel']) > 0:
 else:
     print("\t"+"NONE DETECTED\n")
 
-print("*** NOVEL STRUCTURAL VARIANTS INVOLVING KNOWN GENES ***\n")
-if len(vars['knowngenes']) > 0:
-    print("\t".join(('TYPE','CHR1','POS1','CHR2','POS2','LENGTH','BANDS','KNOWN_GENES','HGVS-LIKE','ISCN-LIKE','TOTAL_GENES','FILTERS','CONTIG_HITS','ID','ABUNDANCE','PR_READS','SR_READS','CONTIG')))
-    for r in vars['knowngenes']:
-        print("\t".join(r))
-    print()
-else:
-    print("\t"+"NONE DETECTED\n")
-
-print("*** OTHER HIGH-CONFIDENCE STRUCTURAL VARIANTS ***\n")
+print("*** OTHER STRUCTURAL VARIANTS ***\n")
 if len(vars['novelsv']) > 0:
-    print("\t".join(('TYPE','CHR1','POS1','CHR2','POS2','LENGTH','BANDS','KNOWN_GENES','HGVS-LIKE','ISCN-LIKE','TOTAL_GENES','FILTERS','CONTIG_HITS','ID','ABUNDANCE','PR_READS','SR_READS','CONTIG')))
+    print("\t".join(('TYPE','CHR1','POS1','CHR2','POS2','LENGTH','BANDS','KNOWN_GENES','HGVS-LIKE','ISCN-LIKE','TOTAL_GENES','FILTERS','ID','ABUNDANCE','INFO')))
     for r in vars['novelsv']:
         print("\t".join(r))
     print()
@@ -509,7 +499,13 @@ print("UNIQUE READS:\t",mapdata['Number of unique reads (excl. duplicate marked 
 print("PROPERLY PAIRED READS:\t"+str(mapdata['Properly paired reads'])+" ",str(round(int(mapdata['Properly paired reads'])/int(mapdata['Total input reads'])*100,1))+"%")
 print("MEAN INSERT SIZE:\t"+mapdata['Insert length: mean']+"\n")
 
-print("*** Gene Coverage Metrics: Exons with <"+str(MinFracGene20)+"% at 20x or mean coverage <"+str(MinGeneCov)+"x ***\n")
+print("*** Haplotect Contamination Estimate ***\n")
+with open(haplotect, 'r') as hap:
+    reader = csv.reader(hap, delimiter='\t')
+    for row in reader:
+        print("\t".join(row))
+
+print("\n*** Gene Coverage Metrics: Exons with <"+str(MinFracGene20)+"% at 20x or mean coverage <"+str(MinGeneCov)+"x ***\n")
 # gene cov
 with open(genecov, 'r') as g:
     reader = csv.reader(g, delimiter='\t')
