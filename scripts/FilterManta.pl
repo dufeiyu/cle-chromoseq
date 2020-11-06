@@ -300,7 +300,7 @@ while(<VCF>){
 	push @filter, "FailedContig" if $foundhit;
 	
     }
-    $F[6] = join(',',@filter);
+    $F[6] = join(';',@filter);
     $F[6] = "PASS" if scalar @filter == 0;
     
     print O join("\t",@F),"\n";
