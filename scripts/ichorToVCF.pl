@@ -10,14 +10,14 @@ my $refseq = "~/refdata/hg38/all_sequences.fa";
 
 my $minCNAsize = 5000000;
 my $minCNAabund = 10.0;
-my $failAbund = 5.0;
+my $discardAbund = 5.0;
 my $gender = '';
 
 GetOptions("r=s" => \$refseq,
 	   "g=s" => \$gender,
 	   "s|minsize=i" => \$minCNAsize,
 	   "f|minabund=f" => \$minCNAabund,
-	   "m|failabund=f" => \$failAbund);
+	   "m|discardabund=f" => \$discardAbund);
 
 my $segsfile = $ARGV[0];
 
@@ -78,7 +78,7 @@ while(<CNV>){
     my $abund = sprintf("%.1f",ratio2abundance($F[6],$nl,$F[5]) * 100);
 
     # do not even report variants that are below $failAbund
-    next if $abund < $failAbund;
+    next if $abund < $discardAbund;
     
     my @filter = ();
     

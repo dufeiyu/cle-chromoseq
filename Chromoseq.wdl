@@ -258,9 +258,10 @@ workflow ChromoSeq {
     annotate_svs.vcf_index,
     annotate_svs.allvcf,
     annotate_svs.allvcf_index,
-    run_varscan.varscan_snv_file,
-    run_varscan.varscan_indel_file,
-    run_detect_indels.vcf,
+    annotate_variants.annotated_filtered_vcf,
+    annotate_variants.annotated_filtered_vcf_index,
+    annotate_variants.annotated_vcf,
+    annotate_variants.annotated_vcf_index,
     run_ichor.params,
     run_ichor.seg,
     run_ichor.genomewide_pdf,
@@ -272,8 +273,6 @@ workflow ChromoSeq {
     gene_qc.global_dist,
     sv_qc.qc_out,
     sv_qc.region_dist,
-    annotate_variants.annotated_filtered_vcf,
-    annotate_variants.annotated_filtered_vcf_index,
     run_haplotect.out_file,
     run_haplotect.sites_file,
     make_report.report],
@@ -447,7 +446,6 @@ task run_varscan_snv {
   Int? MinCov
   Float? MinFreq
   Int? MinReads
-  Float? pvalindel
   Float? pvalsnv
   String CoverageBed
   String refFasta
@@ -481,7 +479,7 @@ task run_varscan_indel {
   Int? MinCov
   Float? MinFreq
   Int? MinReads
-  Float? pvalsnv
+  Float? pvalindel
   String CoverageBed
   String refFasta
   String Name
@@ -512,7 +510,6 @@ task run_pindel_indels {
   String Bam
   String BamIndex
   String Reg
-  String Config
   Int? Isize
   Int? MinReads
   String refFasta
@@ -646,6 +643,7 @@ task annotate_variants {
   }
   output {
     File annotated_vcf = "${Name}.annotated.vcf.gz"
+    File annotated_vcf_index = "${Name}.annotated.vcf.gz.tbi"
     File annotated_filtered_vcf = "${Name}.annotated_filtered.vcf.gz"
     File annotated_filtered_vcf_index = "${Name}.annotated_filtered.vcf.gz.tbi"
   }
