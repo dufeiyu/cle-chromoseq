@@ -557,7 +557,7 @@ task run_manta_indels {
   command <<<
     set -eo pipefail && 
     /opt/conda/bin/bgzip -c ${Reg} > ${tmp}/reg.bed.gz && /opt/conda/bin/tabix -p bed ${tmp}/reg.bed.gz && \
-    /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${refFasta} --runDir=manta --region=${tmp}/reg.bed.gz --outputContig && \
+    /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${refFasta} --runDir=manta --callRegions=${tmp}/reg.bed.gz --outputContig && \
     ./manta/runWorkflow.py -m local -q research-hpc -j 4 -g 32 && \
     cp ./manta/results/variants/tumorSV.vcf.gz ${Name}.manta.vcf.gz
   >>>
