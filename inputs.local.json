@@ -35,7 +35,7 @@
     "ChromoSeq.varscanPvalsnv": 0.01,
     "ChromoSeq.varscanPvalindel": 0.1,
     "Chromoseq.MinCNASize":5000000,
-    "Chromoseq.MinCNAabund":5.0,
+    "Chromoseq.MinCNAabund":10.0,
     "ChromoSeq.Queue": "compute-mgi-cle",
     "ChromoSeq.JobGroup": "/cle/wdl/chromoseq",
     "ChromoSeq.chromoseq_docker": "registry.gsc.wustl.edu/mgi-cle/basespace_chromoseq:v13"

@@ -46,7 +46,7 @@ workflow ChromoSeq {
   Float varscanPvalsnv
 
   Int MinCNASize = 5000000
-  Float MinCNAabund = 5.0
+  Float MinCNAabund = 10.0
   
   String JobGroup
   String Queue
@@ -120,12 +120,11 @@ workflow ChromoSeq {
     docker=chromoseq_docker
   }
   
-  call run_varscan {
+  call run_varscan_indel {
     input: Bam=Cram,
     BamIndex=CramIndex,
     CoverageBed=GenesBed,
     MinFreq=minVarFreq,
-    pvalsnv=varscanPvalsnv,
     pvalindel=varscanPvalindel,
     refFasta=Reference,
     Name=Name,
@@ -134,11 +133,25 @@ workflow ChromoSeq {
     tmp=tmp,
     docker=chromoseq_docker
   }
-  
-  call run_detect_flt3itd {
+
+ call run_varscan_snv {
     input: Bam=Cram,
     BamIndex=CramIndex,
-    Reg='chr13:28033848-28034451',
+    CoverageBed=GenesBed,
+    MinFreq=minVarFreq,
+    pvalsnv=varscanPvalsnv,
+    refFasta=Reference,
+    Name=Name,
+    queue=Queue,
+    jobGroup=JobGroup,
+    tmp=tmp,
+    docker=chromoseq_docker
+  }
+  
+  call run_manta_indels {
+    input: Bam=Cram,
+    BamIndex=CramIndex,
+    Reg=GenesBed,
     Config=MantaRegionConfig,
     refFasta=Reference,
     Name=Name,
@@ -149,10 +162,23 @@ workflow ChromoSeq {
     docker=chromoseq_docker
   }
 
+  call run_pindel_indels {
+    input: Bam=Cram,
+    BamIndex=CramIndex,
+    Reg=GenesBed,
+    refFasta=Reference,
+    Name=Name,
+    genome=genome,
+    queue=Queue,
+    jobGroup=JobGroup,
+    tmp=tmp,
+    docker=chromoseq_docker
+  }
+
   call combine_variants {
-    input: VCFs=[run_varscan.varscan_snv_file,
-    run_varscan.varscan_indel_file,
-    run_detect_flt3itd.vcf,
+    input: VCFs=[run_varscan_snv.vcf,
+    run_varscan_indel.vcf,run_pindel_indels.vcf,
+    run_manta_indels.vcf,
     HotspotVCF],
     Bam=Cram,
     BamIndex=CramIndex,
@@ -234,7 +260,7 @@ workflow ChromoSeq {
     annotate_svs.allvcf_index,
     run_varscan.varscan_snv_file,
     run_varscan.varscan_indel_file,
-    run_detect_flt3itd.vcf,
+    run_detect_indels.vcf,
     run_ichor.params,
     run_ichor.seg,
     run_ichor.genomewide_pdf,
@@ -415,7 +441,7 @@ task run_ichor {
   }
 }
 
-task run_varscan {
+task run_varscan_snv {
   String Bam
   String BamIndex
   Int? MinCov
@@ -434,9 +460,7 @@ task run_varscan {
   command <<<
     /usr/local/bin/samtools mpileup -f ${refFasta} -l ${CoverageBed} ${Bam} > ${tmp}/mpileup.out && \
     java -Xmx12g -jar /opt/varscan/VarScan.jar mpileup2snp ${tmp}/mpileup.out --min-coverage ${default=6 MinCov} --min-reads2 ${default=3 MinReads} \
-    --min-var-freq ${default="0.02" MinFreq} --p-value ${default="0.01" pvalsnv} --output-vcf | /opt/conda/bin/bgzip -c > ${Name}.snv.vcf.gz && /opt/conda/bin/tabix ${Name}.snv.vcf.gz && \
-    java -Xmx12g -jar /opt/varscan/VarScan.jar mpileup2indel ${tmp}/mpileup.out --min-coverage ${default=6 MinCov} --min-reads2 ${default=3 MinReads} \
-    --min-var-freq ${default="0.02" MinFreq} --p-value ${default="0.1" pvalindel} --output-vcf | /opt/conda/bin/bgzip -c > ${Name}.indel.vcf.gz && /opt/conda/bin/tabix ${Name}.indel.vcf.gz
+    --min-var-freq ${default="0.02" MinFreq} --p-value ${default="0.01" pvalsnv} --output-vcf | /opt/conda/bin/bgzip -c > ${Name}.snv.vcf.gz && /opt/conda/bin/tabix ${Name}.varscan_snv.vcf.gz
   >>>
   
   runtime {
@@ -447,12 +471,44 @@ task run_varscan {
     job_group: jobGroup
   }
   output {
-    File varscan_snv_file = "${Name}.snv.vcf.gz"
-    File varscan_indel_file = "${Name}.indel.vcf.gz"
+    File vcf = "${Name}.varscan_snv.vcf.gz"
   }
 }
 
-task run_detect_flt3itd {
+task run_varscan_indel {
+  String Bam
+  String BamIndex
+  Int? MinCov
+  Float? MinFreq
+  Int? MinReads
+  Float? pvalsnv
+  String CoverageBed
+  String refFasta
+  String Name
+  String queue
+  String jobGroup
+  String? tmp
+  String docker
+  
+  command <<<
+    /usr/local/bin/samtools mpileup -f ${refFasta} -l ${CoverageBed} ${Bam} > ${tmp}/mpileup.out && \
+    java -Xmx12g -jar /opt/varscan/VarScan.jar mpileup2indel ${tmp}/mpileup.out --min-coverage ${default=6 MinCov} --min-reads2 ${default=3 MinReads} \
+    --min-var-freq ${default="0.02" MinFreq} --p-value ${default="0.1" pvalindel} --output-vcf | /opt/conda/bin/bgzip -c > ${Name}.indel.vcf.gz && /opt/conda/bin/tabix ${Name}.varscan_indel.vcf.gz
+  >>>
+  
+  runtime {
+    docker_image: docker
+    cpu: "2"
+    memory: "16 G"
+    queue: queue
+    job_group: jobGroup
+  }
+  output {
+    File vcf = "${Name}.varscan_indel.vcf.gz"
+  }
+}
+
+task run_pindel_indels {
   String Bam
   String BamIndex
   String Reg
@@ -468,18 +524,10 @@ task run_detect_flt3itd {
   String docker
   
   command <<<
-    (set -eo pipefail && /usr/local/bin/samtools view -T ${refFasta} ${Bam} ${Reg} | /opt/pindel-0.2.5b8/sam2pindel - ${tmp}/in.pindel ${default=250 Isize} tumor 0 Illumina-PairEnd) && \
-    /usr/local/bin/pindel -f ${refFasta} -p ${tmp}/in.pindel -c ${Reg} -o ${tmp}/out.pindel && \
+    (set -eo pipefail && /usr/local/bin/samtools view -T ${refFasta} -L ${Reg} ${Bam} | /opt/pindel-0.2.5b8/sam2pindel - ${tmp}/in.pindel ${default=250 Isize} tumor 0 Illumina-PairEnd) && \
+    /usr/local/bin/pindel -f ${refFasta} -p ${tmp}/in.pindel -c ALL -o ${tmp}/out.pindel && \
     /usr/local/bin/pindel2vcf -P ${tmp}/out.pindel -G -r ${refFasta} -e ${default=3 MinReads} -R ${default="hg38" genome} -d ${default="hg38" genome} -v ${tmp}/pindel.vcf && \
-    /bin/sed 's/END=[0-9]*\;//' ${tmp}/pindel.vcf | /opt/conda/bin/bgzip -c > ${Name}.pindel.vcf.gz && /opt/conda/bin/tabix ${Name}.pindel.vcf.gz && \
-    /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${refFasta} --runDir=manta --region=${Reg} --outputContig && \
-    ./manta/runWorkflow.py -m local -q research-hpc -j 4 -g 32 && \
-    /opt/conda/envs/python2/bin/bcftools merge --force-samples -O z ./manta/results/variants/tumorSV.vcf.gz ${Name}.pindel.vcf.gz > ${tmp}/combined.vcf.gz &&
-    /opt/conda/bin/tabix -p vcf ${tmp}/combined.vcf.gz && \
-    /opt/conda/envs/python2/bin/bcftools norm -d none -f ${refFasta} -O z ${tmp}/combined.vcf.gz > ${tmp}/combined.norm.vcf.gz && /usr/bin/tabix -p vcf ${tmp}/combined.norm.vcf.gz && \
-    /opt/conda/bin/python /usr/local/bin/fixITDs.py -r ${refFasta} ${tmp}/combined.norm.vcf.gz | \
-    /opt/conda/envs/python2/bin/bcftools norm -d none -f ${refFasta} | bgzip -c > ${Name}.flt3itd.vcf.gz && \
-    /usr/bin/tabix -p vcf ${Name}.flt3itd.vcf.gz
+    /bin/sed 's/END=[0-9]*\;//' ${tmp}/pindel.vcf | /opt/conda/bin/bgzip -c > ${Name}.pindel.vcf.gz && /opt/conda/bin/tabix ${Name}.pindel.vcf.gz
   >>>
   
   runtime {
@@ -490,7 +538,42 @@ task run_detect_flt3itd {
     job_group: jobGroup
   }
   output {
-    File vcf = "${Name}.flt3itd.vcf.gz"
+    File vcf = "${Name}.indels.vcf.gz"
+  }
+}
+
+task run_manta_indels {
+  String Bam
+  String BamIndex
+  String Reg
+  String Config
+  Int? Isize
+  Int? MinReads
+  String refFasta
+  String Name
+  String queue
+  String jobGroup
+  String? tmp
+  String genome
+  String docker
+  
+  command <<<
+    set -eo pipefail && 
+    /opt/conda/bin/bgzip -c ${Reg} > ${tmp}/reg.bed.gz && /opt/conda/bin/tabix -p bed ${tmp}/reg.bed.gz && \
+    /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${refFasta} --runDir=manta --region=${tmp}/reg.bed.gz --outputContig && \
+    ./manta/runWorkflow.py -m local -q research-hpc -j 4 -g 32 && \
+    cp ./manta/results/variants/tumorSV.vcf.gz ${Name}.manta.vcf.gz
+  >>>
+  
+  runtime {
+    docker_image: docker
+    cpu: "1"
+    memory: "16 G"
+    queue: queue
+    job_group: jobGroup
+  }
+  output {
+    File vcf = "${Name}.manta.vcf.gz"
   }
 }
 
@@ -510,6 +593,7 @@ task combine_variants {
   command {
     /opt/conda/envs/python2/bin/bcftools merge --force-samples -O z ${sep=" " VCFs} | \
     /opt/conda/envs/python2/bin/bcftools norm -d none -f ${refFasta} -O z > ${tmp}/combined.vcf.gz && /usr/bin/tabix -p vcf ${tmp}/combined.vcf.gz && \
+    /opt/conda/bin/python /usr/local/bin/fixITDs.py -r ${refFasta} ${tmp}/combined.vcf.gz && /usr/bin/tabix -p vcf ${tmp}/combined.vcf.gz
     /opt/conda/bin/python /usr/local/bin/addReadCountsToVcfCRAM.py -f -n ${MinReads} -v ${MinVAF} -r ${refFasta} ${tmp}/combined.vcf.gz ${Bam} ${Name} | \
     /opt/conda/bin/bgzip -c > ${Name}.combined_tagged.vcf.gz && /usr/bin/tabix -p vcf ${Name}.combined_tagged.vcf.gz
   }
