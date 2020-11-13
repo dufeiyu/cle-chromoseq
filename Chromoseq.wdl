@@ -522,7 +522,7 @@ task run_pindel_indels {
   
   command <<<
     (set -eo pipefail && /usr/local/bin/samtools view -T ${refFasta} -L ${Reg} ${Bam} | /opt/pindel-0.2.5b8/sam2pindel - ${tmp}/in.pindel ${default=250 Isize} tumor 0 Illumina-PairEnd) && \
-    /usr/local/bin/pindel -f ${refFasta} -p ${tmp}/in.pindel -c ALL -o ${tmp}/out.pindel && \
+    /usr/local/bin/pindel -f ${refFasta} -p ${tmp}/in.pindel -j ${Reg} -o ${tmp}/out.pindel && \
     /usr/local/bin/pindel2vcf -P ${tmp}/out.pindel -G -r ${refFasta} -e ${default=3 MinReads} -R ${default="hg38" genome} -d ${default="hg38" genome} -v ${tmp}/pindel.vcf && \
     /bin/sed 's/END=[0-9]*\;//' ${tmp}/pindel.vcf | /opt/conda/bin/bgzip -c > ${Name}.pindel.vcf.gz && /opt/conda/bin/tabix ${Name}.pindel.vcf.gz
   >>>
