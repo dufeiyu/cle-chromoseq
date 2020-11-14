@@ -458,7 +458,7 @@ task run_varscan_snv {
   command <<<
     /usr/local/bin/samtools mpileup -f ${refFasta} -l ${CoverageBed} ${Bam} > ${tmp}/mpileup.out && \
     java -Xmx12g -jar /opt/varscan/VarScan.jar mpileup2snp ${tmp}/mpileup.out --min-coverage ${default=6 MinCov} --min-reads2 ${default=3 MinReads} \
-    --min-var-freq ${default="0.02" MinFreq} --p-value ${default="0.01" pvalsnv} --output-vcf | /opt/conda/bin/bgzip -c > ${Name}.snv.vcf.gz && /opt/conda/bin/tabix ${Name}.varscan_snv.vcf.gz
+    --min-var-freq ${default="0.02" MinFreq} --p-value ${default="0.01" pvalsnv} --output-vcf | /opt/conda/bin/bgzip -c > ${Name}.varscan_snv.vcf.gz && /opt/conda/bin/tabix ${Name}.varscan_snv.vcf.gz
   >>>
   
   runtime {
