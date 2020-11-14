@@ -535,7 +535,7 @@ task run_pindel_indels {
     job_group: jobGroup
   }
   output {
-    File vcf = "${Name}.indels.vcf.gz"
+    File vcf = "${Name}.pindel.vcf.gz"
   }
 }
 
