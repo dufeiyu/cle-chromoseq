@@ -180,6 +180,8 @@ workflow ChromoSeq {
     run_varscan_indel.vcf,run_pindel_indels.vcf,
     run_manta_indels.vcf,
     HotspotVCF],
+    MinVAF=minVarFreq,
+    MinReads=MinReads,
     Bam=Cram,
     BamIndex=CramIndex,
     refFasta=Reference,
