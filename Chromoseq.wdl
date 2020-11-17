@@ -184,8 +184,6 @@ workflow ChromoSeq {
     BamIndex=CramIndex,
     refFasta=Reference,
     Name=Name,
-    MinReads=MinReads,
-    MinVAF=minVarFreq,
     queue=Queue,
     jobGroup=JobGroup,
     tmp=tmp,
@@ -516,14 +514,14 @@ task run_pindel_indels {
   String Name
   String queue
   String jobGroup
-  String? tmp
+  String tmp
   String genome
   String docker
   
   command <<<
     (set -eo pipefail && /usr/local/bin/samtools view -T ${refFasta} -L ${Reg} ${Bam} | /opt/pindel-0.2.5b8/sam2pindel - ${tmp}/in.pindel ${default=250 Isize} tumor 0 Illumina-PairEnd) && \
     /usr/local/bin/pindel -f ${refFasta} -p ${tmp}/in.pindel -j ${Reg} -o ${tmp}/out.pindel && \
-    /usr/local/bin/pindel2vcf -P ${tmp}/out.pindel -G -r ${refFasta} -e ${default=3 MinReads} -R ${default="hg38" genome} -d ${default="hg38" genome} -v ${tmp}/pindel.vcf && \
+    /usr/local/bin/pindel2vcf -P ${tmp}/out.pindel -G -r ${refFasta} -e ${default=5 MinReads} -R ${default="hg38" genome} -d ${default="hg38" genome} -v ${tmp}/pindel.vcf && \
     /bin/sed 's/END=[0-9]*\;//' ${tmp}/pindel.vcf | /opt/conda/bin/bgzip -c > ${Name}.pindel.vcf.gz && /opt/conda/bin/tabix ${Name}.pindel.vcf.gz
   >>>
   
@@ -544,13 +542,11 @@ task run_manta_indels {
   String BamIndex
   String Reg
   String Config
-  Int? Isize
-  Int? MinReads
   String refFasta
   String Name
   String queue
   String jobGroup
-  String? tmp
+  String tmp
   String genome
   String docker
   
@@ -559,7 +555,8 @@ task run_manta_indels {
     /opt/conda/bin/bgzip -c ${Reg} > ${tmp}/reg.bed.gz && /opt/conda/bin/tabix -p bed ${tmp}/reg.bed.gz && \
     /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${refFasta} --runDir=manta --callRegions=${tmp}/reg.bed.gz --outputContig && \
     ./manta/runWorkflow.py -m local -q research-hpc -j 4 -g 32 && \
-    cp ./manta/results/variants/tumorSV.vcf.gz ${Name}.manta.vcf.gz
+    /opt/conda/bin/python /usr/local/bin/fixITDs.py -r ${refFasta} ./manta/results/variants/tumorSV.vcf.gz | /opt/conda/bin/bgzip -c > ${Name}.manta.vcf.gz &&
+    /opt/conda/bin/tabix -p vcf ${Name}.manta.vcf.gz
   >>>
   
   runtime {
@@ -590,8 +587,7 @@ task combine_variants {
   command {
     /opt/conda/envs/python2/bin/bcftools merge --force-samples -O z ${sep=" " VCFs} | \
     /opt/conda/envs/python2/bin/bcftools norm -d none -f ${refFasta} -O z > ${tmp}/combined.vcf.gz && /usr/bin/tabix -p vcf ${tmp}/combined.vcf.gz && \
-    /opt/conda/bin/python /usr/local/bin/fixITDs.py -r ${refFasta} ${tmp}/combined.vcf.gz && /usr/bin/tabix -p vcf ${tmp}/combined.vcf.gz
-    /opt/conda/bin/python /usr/local/bin/addReadCountsToVcfCRAM.py -f -n ${MinReads} -v ${MinVAF} -r ${refFasta} ${tmp}/combined.vcf.gz ${Bam} ${Name} | \
+    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/addReadCountsToVcfCRAM.py -f -n ${MinReads} -v ${MinVAF} -r ${refFasta} ${tmp}/combined.vcf.gz ${Bam} ${Name} | \
     /opt/conda/bin/bgzip -c > ${Name}.combined_tagged.vcf.gz && /usr/bin/tabix -p vcf ${Name}.combined_tagged.vcf.gz
   }
   runtime {

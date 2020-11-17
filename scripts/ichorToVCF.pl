@@ -72,7 +72,11 @@ while(<CNV>){
     # if male and sex chromosome then adjust the normal and observed copy number
     if ($F[1] =~ /X|Y/ and $gender eq 'male'){
 	$nl = 1;
-	$F[6]--;
+	if ($F[5] < 0){
+	    $F[6] = $nl-1;
+	} else {
+	    $F[6] = $nl+1;
+	}
     }
 
     my $abund = sprintf("%.1f",ratio2abundance($F[6],$nl,$F[5]) * 100);

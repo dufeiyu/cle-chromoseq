@@ -168,7 +168,7 @@ for variant in genevcf:
 #        filter = 'PASS'
 
     # otherwise dont report synonymous or filtered variants
-    if re.match("synonymous|UTR|stream",genes[gene]['Consequence']) is not None or filter != 'PASS':
+    if re.match("synonymous|UTR|stream|^splice_region|^intron",genes[gene]['Consequence']) is not None or filter != 'PASS':
         continue
 
     abundance = variant.format("VAF")[0][0] * 100
@@ -180,7 +180,10 @@ for variant in genevcf:
     psyntax = 'NA'
     if genes[gene]['HGVSp'] is not None and genes[gene]['HGVSp'] is not '':
         psyntax = genes[gene]['HGVSp'].split(":")[1]
-    
+
+    if psyntax is 'NA':
+        psyntax = csyntax
+       
     pmaf = genes[gene]['MAX_AF']
     if pmaf is None or pmaf == '':
         pmaf = 'NA'

@@ -23,20 +23,19 @@ print("\n".join(hdr) + '\n' + "\t".join((hd.split("\t"))[0:9]) + '\t' + vcffile.
 
 for rec in vcffile.fetch(reopen=True):
 
-    if rec.alts[0] == "<DUP>" or rec.alts[0] == "<DUP:TANDEM>":
-        rec.ref = fa.fetch(rec.contig,rec.pos-1,rec.pos)[0]
-        rec.alts = (str(fa.fetch(rec.contig,rec.pos-1,rec.stop)),)
-        rec.info['SVTYPE'] = 'INS'
-        rec.samples[0]['GT'] = (0,1)
+    if 'SVTYPE' in rec.info:
 
-    elif rec.info['SVTYPE'] == 'INS':
+        if  rec.alts[0] == "<DUP>" or rec.alts[0] == "<DUP:TANDEM>":
+            rec.ref = fa.fetch(rec.contig,rec.pos-1,rec.pos)[0]
+            rec.alts = (str(fa.fetch(rec.contig,rec.pos-1,rec.stop)),)
+            rec.info['SVTYPE'] = 'INS'
+            rec.samples[0]['GT'] = (0,1)
+            
+        elif rec.info['SVTYPE'] == 'DUP' or rec.info['SVTYPE'] == 'DUP:TANDEM':
+            rec.info['SVTYPE'] = 'INS'
+            
         rec.samples[0]['GT'] = (0,1)        
 
-    else:
-        continue
-
-    if rec.info['SVTYPE'] == 'DUP' or rec.info['SVTYPE'] == 'DUP:TANDEM':
-        rec.info['SVTYPE'] = 'INS'
         
     print ("\t".join(str(rec).rstrip().split("\t")[0:10]))
 
