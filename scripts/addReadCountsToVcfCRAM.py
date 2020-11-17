@@ -259,8 +259,9 @@ for rec in vcffile.fetch(reopen=True):
     else:
         rec.filter.add("PASS")
         ispass = True
-        
-    if PrintAllVariants is True or ispass is True:
+
+    # hard filter if only 1 supporting read
+    if (PrintAllVariants is True or ispass is True) and cnts['alt'] > 1:
         print ("\t".join(str(rec).rstrip().split("\t")[0:10]))
 
 # end vcf fetch
