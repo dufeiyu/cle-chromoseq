@@ -18,7 +18,8 @@ workflow ChromoSeq {
   String CustomAnnotationVcf 
   String CustomAnnotationIndex
   String CustomAnnotationParameters
-
+  String? GeneFilterString
+  
   String HotspotVCF
   String MantaConfig
   String MantaRegionConfig
@@ -203,6 +204,7 @@ workflow ChromoSeq {
     CustomAnnotationVcf=CustomAnnotationVcf,
     CustomAnnotationIndex=CustomAnnotationIndex,
     CustomAnnotationParameters=CustomAnnotationParameters,
+    FilterString=GeneFilterString,
     Name=Name,
     queue=Queue,
     jobGroup=JobGroup,
@@ -526,7 +528,7 @@ task run_pindel_indels {
   String docker
   
   command <<<
-    (set -eo pipefail && /usr/local/bin/samtools view -T ${refFasta} -L ${Reg} ${Bam} | /opt/pindel-0.2.5b8/sam2pindel - ${tmp}/in.pindel ${default=250 Isize} tumor 0 Illumina-PairEnd) && \
+    (set -eo pipefail && /usr/local/bin/samtools view -T ${refFasta} -ML ${Reg} ${Bam} | /opt/pindel-0.2.5b8/sam2pindel - ${tmp}/in.pindel ${default=250 Isize} tumor 0 Illumina-PairEnd) && \
     /usr/local/bin/pindel -f ${refFasta} -p ${tmp}/in.pindel -j ${Reg} -o ${tmp}/out.pindel && \
     /usr/local/bin/pindel2vcf -P ${tmp}/out.pindel -G -r ${refFasta} -e ${default=3 MinReads} -R ${default="hg38" genome} -d ${default="hg38" genome} -v ${tmp}/pindel.vcf && \
     /bin/sed 's/END=[0-9]*\;//' ${tmp}/pindel.vcf | /opt/conda/bin/bgzip -c > ${Name}.pindel.vcf.gz && /opt/conda/bin/tabix ${Name}.pindel.vcf.gz
@@ -618,7 +620,7 @@ task annotate_variants {
   File CustomAnnotationVcf
   File CustomAnnotationIndex
   String CustomAnnotationParameters
-  Float? maxAF
+  String? FilterString
   String Name
   String queue
   String jobGroup
@@ -633,7 +635,7 @@ task annotate_variants {
     /opt/htslib/bin/bgzip -c ${Name}.annotated.vcf > ${Name}.annotated.vcf.gz && \
     /usr/bin/tabix -p vcf ${Name}.annotated.vcf.gz && \
     /usr/bin/perl -I /opt/lib/perl/VEP/Plugins /opt/vep/ensembl-vep/filter_vep -i ${Name}.annotated.vcf.gz --format vcf -o ${Name}.annotated_filtered.vcf \
-    --filter "(MAX_AF < ${default='0.001' maxAF} or not MAX_AF) or MYELOSEQ_TCGA_AC or MYELOSEQ_MDS_AC" && \
+    --filter "${default='MAX_AF < 0.001 or not MAX_AF' FilterString}" && \
     /opt/htslib/bin/bgzip -c ${Name}.annotated_filtered.vcf > ${Name}.annotated_filtered.vcf.gz && \
     /usr/bin/tabix -p vcf ${Name}.annotated_filtered.vcf.gz
   }

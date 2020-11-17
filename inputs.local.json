@@ -15,6 +15,7 @@
     "ChromoSeq.CustomAnnotationVcf":"/gscmnt/gc13016/cle/54f8f7b915cb472aa183c721307369ab_scratch_space/ChromoSeq/git/cle-chromoseq/accessory_files/chromoseq_custom_anntations.040920.vcf.gz",
     "ChromoSeq.CustomAnnotationIndex":"/gscmnt/gc13016/cle/54f8f7b915cb472aa183c721307369ab_scratch_space/ChromoSeq/git/cle-chromoseq/accessory_files/chromoseq_custom_anntations.040920.vcf.gz.tbi",
     "ChromoSeq.CustomAnnotationParameters":"MYELOSEQ,vcf,exact,0,TCGA_AC,MDS_AC,MYELOSEQBLACKLIST",
+    "ChromoSeq.GeneFilterString":"(MAX_AF < 0.001 or not MAX_AF) or MYELOSEQ_TCGA_AC or MYELOSEQ_MDS_AC",
     "ChromoSeq.HotspotVCF":"/gscmnt/gc13016/cle/54f8f7b915cb472aa183c721307369ab_scratch_space/ChromoSeq/git/cle-chromoseq/accessory_files/chromoseq_hotspot.vcf.gz",
     "ChromoSeq.MantaConfig": "/gscmnt/gc13016/cle/54f8f7b915cb472aa183c721307369ab_scratch_space/ChromoSeq/git/cle-chromoseq/accessory_files/configManta.hg38.py.ini",
     "ChromoSeq.MantaRegionConfig": "/gscmnt/gc13016/cle/54f8f7b915cb472aa183c721307369ab_scratch_space/ChromoSeq/git/cle-chromoseq/accessory_files/configMantaRegion.hg38.py.ini",
