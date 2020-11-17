@@ -668,7 +668,7 @@ task annotate_svs {
   
   command {
     set -eo pipefail && \
-    perl /usr/local/bin/ichorToVCF.pl -g ${gender} -minsize ${minCNAsize} \
+    perl /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/ichorToVCF.pl -g ${gender} -minsize ${minCNAsize} \
     -minabund ${minCNAabund} -r ${refFasta} ${CNV} | /opt/conda/bin/bgzip -c > cnv.vcf.gz && \
     /opt/htslib/bin/tabix -p vcf cnv.vcf.gz && \
     /opt/conda/envs/python2/bin/bcftools query -l cnv.vcf.gz > name.txt && \
