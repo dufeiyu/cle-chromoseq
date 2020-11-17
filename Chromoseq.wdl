@@ -555,9 +555,9 @@ task run_manta_indels {
   command <<<
     set -eo pipefail && 
     /opt/conda/bin/bgzip -c ${Reg} > ${tmp}/reg.bed.gz && /opt/conda/bin/tabix -p bed ${tmp}/reg.bed.gz && \
-    /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${refFasta} --runDir=manta --callRegions=${tmp}/reg.bed.gz --outputContig && \
+    /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${refFasta} --runDir=manta --callRegions=${tmp}/reg.bed.gz --outputContig --exome && \
     ./manta/runWorkflow.py -m local -q research-hpc -j 4 -g 32 && \
-    /opt/conda/bin/python /usr/local/bin/fixITDs.py -r ${refFasta} ./manta/results/variants/tumorSV.vcf.gz | /opt/conda/bin/bgzip -c > ${Name}.manta.vcf.gz &&
+    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/fixITDs.py -r ${refFasta} ./manta/results/variants/tumorSV.vcf.gz | /opt/conda/bin/bgzip -c > ${Name}.manta.vcf.gz &&
     /opt/conda/bin/tabix -p vcf ${Name}.manta.vcf.gz
   >>>
   
@@ -764,7 +764,7 @@ task make_report {
   
   command <<<
     cat ${MappingSummary} ${CoverageSummary} | cut -d ',' -f 3,4 | sort -u > qc.txt && \
-    /opt/conda/bin/python /usr/local/bin/make_report.py ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} > "${Name}.chromoseq.txt"
+    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/make_report.py ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} > "${Name}.chromoseq.txt"
   >>>
   
   runtime {
