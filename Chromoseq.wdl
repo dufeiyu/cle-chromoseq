@@ -47,6 +47,9 @@ workflow ChromoSeq {
 
   Int MinCNASize = 5000000
   Float MinCNAabund = 10.0
+
+  Int MinValidatedReads
+  Float MinValidatedVAF
   
   String JobGroup
   String Queue
@@ -247,6 +250,8 @@ workflow ChromoSeq {
     MappingSummary=MappingSummary,
     CoverageSummary=CoverageSummary,
     Name=Name,
+    MinReads=MinValidatedReads,
+    MinVAF=MinValidatedVAF,    
     queue=Queue,
     jobGroup=JobGroup,
     docker=chromoseq_docker,
@@ -523,7 +528,7 @@ task run_pindel_indels {
   command <<<
     (set -eo pipefail && /usr/local/bin/samtools view -T ${refFasta} -L ${Reg} ${Bam} | /opt/pindel-0.2.5b8/sam2pindel - ${tmp}/in.pindel ${default=250 Isize} tumor 0 Illumina-PairEnd) && \
     /usr/local/bin/pindel -f ${refFasta} -p ${tmp}/in.pindel -j ${Reg} -o ${tmp}/out.pindel && \
-    /usr/local/bin/pindel2vcf -P ${tmp}/out.pindel -G -r ${refFasta} -e ${default=5 MinReads} -R ${default="hg38" genome} -d ${default="hg38" genome} -v ${tmp}/pindel.vcf && \
+    /usr/local/bin/pindel2vcf -P ${tmp}/out.pindel -G -r ${refFasta} -e ${default=3 MinReads} -R ${default="hg38" genome} -d ${default="hg38" genome} -v ${tmp}/pindel.vcf && \
     /bin/sed 's/END=[0-9]*\;//' ${tmp}/pindel.vcf | /opt/conda/bin/bgzip -c > ${Name}.pindel.vcf.gz && /opt/conda/bin/tabix ${Name}.pindel.vcf.gz
   >>>
   
@@ -757,6 +762,8 @@ task make_report {
   String jobGroup
   String tmp
   String docker
+  Int? MinReads
+  Float? MinVAF
   Int? MinGeneCov
   Int? MinFracGene20
   Int? MinRegionCov
@@ -764,7 +771,7 @@ task make_report {
   
   command <<<
     cat ${MappingSummary} ${CoverageSummary} | cut -d ',' -f 3,4 | sort -u > qc.txt && \
-    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/make_report.py ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} > "${Name}.chromoseq.txt"
+    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} > "${Name}.chromoseq.txt"
   >>>
   
   runtime {

@@ -8,6 +8,7 @@ from cyvcf2 import VCF
 import tempfile
 import csv
 import binascii
+import argparse
 
 def parse_csq_header(vcf_file):
     for header in vcf_file.header_iter():
@@ -92,15 +93,44 @@ MinFracGene20 = 95
 MinGeneCov = 20
 MinFracRegion10 = 95
 MinRegionCov = 10
+MinReads = 3
+MinVAF = 5.0
 
+parser = argparse.ArgumentParser(description='Make ChromoSeq report.')
+parser.add_argument('name',help='Sample name')
+parser.add_argument('genevcffile',help='Gene VCF')
+parser.add_argument('svvcffile',help='SV VCF')
+parser.add_argument('genelist',help='Gene list')
+parser.add_argument('mapsum',help='Map summary')
+parser.add_argument('genecov',help='Gene coverage')
+parser.add_argument('svcov',help='SV coverage')
+parser.add_argument('haplotect',help='Haplotect output')
+parser.add_argument('-v',"--minvaf",help='Minimum validated VAF')
+parser.add_argument('-r',"--minreads",type=int,help='Minimum validated variant supporting reads')
 
-(script, Name, genevcf_file, svvcf_file, genelist, mapsum, genecov, svcov, haplotect) = sys.argv
+args = parser.parse_args()
 
+Name = args.name
+genevcf_file = args.genevcffile
+svvcf_file = args.svvcffile
+genelist = args.genelist
+mapsum = args.mapsum
+genecov = args.genecov
+svcov = args.svcov
+haplotect = args.haplotect
+
+if args.minreads:
+    MinReads = args.minreads
+
+if args.minvaf:
+    MinVAF = args.minvaf
+                
 # variants to print out
 vars = {}
 vars['knownsv'] = []
 vars['cna'] = []
 vars['genelevel'] = []
+vars['filteredgenelevel'] = []
 vars['novelsv'] = []
 
 mapdata = {}
@@ -163,12 +193,8 @@ for variant in genevcf:
         
     gene = list(knowngenelist.intersection(get_genes(transcripts)))[0]
 
-    # special case for FLT3 ITD
-#    if gene == 'FLT3' and re.match("inframe_insertion",genes[gene]['Consequence']) is not None:
-#        filter = 'PASS'
-
     # otherwise dont report synonymous or filtered variants
-    if re.match("synonymous|UTR|stream|^splice_region|^intron",genes[gene]['Consequence']) is not None or filter != 'PASS':
+    if re.match("synonymous|UTR|stream|^splice_region|^intron",genes[gene]['Consequence']) is not None:
         continue
 
     abundance = variant.format("VAF")[0][0] * 100
@@ -191,9 +217,19 @@ for variant in genevcf:
         pmaf = str(float(pmaf) * 100) + '%'
         
     psyntax = convert_aa(psyntax)
-    
-    vars['genelevel'].append([vartype,chr1,str(pos1),variant.REF,variant.ALT[0],gene,genes[gene]['Consequence'],csyntax,psyntax,str(genes[gene]['EXON']),filter,
-                              str(variant.ID),str(round(abundance,1))+"%",str(variant.format("NV")[0][0]),str(variant.format("NR")[0][0]),pmaf])
+
+    if abundance < float(MinVAF)*100 or int(variant.format("NV")[0][0]) < MinReads:
+        filter = 'LowReads'
+
+    if re.match("synonymous|UTR|stream|^splice_region|^intron",genes[gene]['Consequence']) is not None:
+        filter = 'Noncoding'
+
+    if filter != 'PASS':
+        vars['filteredgenelevel'].append([vartype,chr1,str(pos1),variant.REF,variant.ALT[0],gene,genes[gene]['Consequence'],csyntax,psyntax,str(genes[gene]['EXON']),filter,
+                                          str(variant.ID),str(round(abundance,1))+"%",str(variant.format("NV")[0][0]),str(variant.format("NR")[0][0]),pmaf])
+    else:
+        vars['genelevel'].append([vartype,chr1,str(pos1),variant.REF,variant.ALT[0],gene,genes[gene]['Consequence'],csyntax,psyntax,str(genes[gene]['EXON']),filter,
+                                  str(variant.ID),str(round(abundance,1))+"%",str(variant.format("NV")[0][0]),str(variant.format("NR")[0][0]),pmaf])
     
     
 # done getting gene variants
@@ -208,15 +244,6 @@ svcsq_fields = parse_csq_header(svvcf)
 
 for variant in svvcf:
 
-#    vartype = variant.INFO.get('SVTYPE')
-
-#    filter = 'PASS'
-#    if variant.FILTER is not None:
-#        filter = variant.FILTER
-
-    # the only filtering done in this script--return only known or novel SVs
-    #    if variant.INFO.get('KNOWNSV') is not None or (filter is 'PASS' and (variant.INFO.get('BLACKLIST_AF') == 0 or variant.INFO.get('BLACKLIST_AF') is None)):
-    #        if variant.INFO.get('CN') is None or (variant.INFO.get('CN') is not None and variant.INFO.get('CNBINS') >= mincnbins):
     passedvars[variant.ID] = variant
 
 # done with first pass
@@ -324,10 +351,6 @@ for v in passedvars.items():
         pr = (0,0)
         sr = (0,0)
         if variant.INFO.get('LOG2RATIO') is not None:
-#            CN = variant.INFO.get('CN')
-            
-#            if variant.INFO.get('LOG2RATIO') < 0 and CN > 2:
-#                CN = 1
             
             abundance = variant.INFO.get('ABUNDANCE') #((2**variant.INFO.get('LOG2RATIO') - 1.0) / ((CN/2.0 - 1.0)))*100;
 
@@ -476,6 +499,15 @@ print("*** GENE MUTATIONS ***\n")
 if len(vars['genelevel']) > 0:
     print("\t".join(('TYPE','CHR','POS','REF','ALT','GENE','CONSEQUENCE','HGVSc','HGVSp','EXON','FILTERS','ID','VAF','VariantReads','TotalReads','PopulationMAF')))
     for r in vars['genelevel']:
+        print("\t".join(r))
+    print()
+else:
+    print("\t"+"NONE DETECTED\n")
+
+print("*** FILTERED GENE MUTATIONS ***\n")
+if len(vars['filteredgenelevel']) > 0:
+    print("\t".join(('TYPE','CHR','POS','REF','ALT','GENE','CONSEQUENCE','HGVSc','HGVSp','EXON','FILTERS','ID','VAF','VariantReads','TotalReads','PopulationMAF')))
+    for r in vars['filteredgenelevel']:
         print("\t".join(r))
     print()
 else:

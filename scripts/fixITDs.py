@@ -33,7 +33,10 @@ for rec in vcffile.fetch(reopen=True):
             
         elif rec.info['SVTYPE'] == 'DUP' or rec.info['SVTYPE'] == 'DUP:TANDEM':
             rec.info['SVTYPE'] = 'INS'
-            
+
+        elif rec.info['SVTYPE'] == 'BND':
+            continue
+        
         rec.samples[0]['GT'] = (0,1)        
 
         
