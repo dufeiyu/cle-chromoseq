@@ -194,7 +194,7 @@ for variant in genevcf:
     gene = list(knowngenelist.intersection(get_genes(transcripts)))[0]
 
     # otherwise dont report synonymous or filtered variants
-    if re.match("synonymous|UTR|stream|^splice_region|^intron",genes[gene]['Consequence']) is not None:
+    if re.match("^synonymous|^5_prime_UTR|^3_prime_UTR|^upstream|^downstream|^intron",genes[gene]['Consequence']) is not None:
         continue
 
     abundance = variant.format("VAF")[0][0] * 100
@@ -220,9 +220,6 @@ for variant in genevcf:
 
     if abundance < float(MinVAF)*100 or int(variant.format("NV")[0][0]) < MinReads:
         filter = 'LowReads'
-
-    if re.match("synonymous|UTR|stream|^splice_region|^intron",genes[gene]['Consequence']) is not None:
-        filter = 'Noncoding'
 
     if filter != 'PASS':
         vars['filteredgenelevel'].append([vartype,chr1,str(pos1),variant.REF,variant.ALT[0],gene,genes[gene]['Consequence'],csyntax,psyntax,str(genes[gene]['EXON']),filter,
