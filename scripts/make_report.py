@@ -190,11 +190,13 @@ for variant in genevcf:
     chr1 = str(variant.CHROM)
     pos1 = variant.POS
     svlen = len(variant.ALT) - len(variant.REF)
-        
-    gene = list(knowngenelist.intersection(get_genes(transcripts)))[0]
+
+    gene = None
+    if len(knowngenelist.intersection(get_genes(transcripts))) > 0:
+        gene = knowngenelist.intersection(get_genes(transcripts)).pop()
 
     # otherwise dont report synonymous or filtered variants
-    if re.match("^synonymous|^5_prime_UTR|^3_prime_UTR|^upstream|^downstream|^intron",genes[gene]['Consequence']) is not None:
+    if gene is None or re.match("^synonymous|^5_prime_UTR|^3_prime_UTR|^upstream|^downstream|^intron",genes[gene]['Consequence']) is not None:
         continue
 
     abundance = variant.format("VAF")[0][0] * 100
