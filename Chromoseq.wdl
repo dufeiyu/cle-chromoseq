@@ -371,7 +371,7 @@ task run_manta {
   command <<<
     set -eo pipefail && \
     /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${Reference} \
-    --runDir=manta --callRegions=${ReferenceBED} --outputContig --exome && \
+    --runDir=manta --callRegions=${ReferenceBED} --outputContig && \
     ./manta/runWorkflow.py -m local -q research-hpc -j 4 -g 32 && \
     zcat ./manta/results/variants/tumorSV.vcf.gz | /bin/sed 's/DUP:TANDEM/DUP/g' > fixed.vcf && \
     /usr/local/bin/duphold_static -v fixed.vcf -b ${Bam} -f ${Reference} -t 4 -o ${Name}.tumorSV.vcf && \
@@ -772,7 +772,7 @@ task make_report {
   Int? MinFracRegion10
   
   command <<<
-    cat ${MappingSummary} ${CoverageSummary} | cut -d ',' -f 3,4 | sort -u > qc.txt && \
+    cat ${MappingSummary} ${CoverageSummary} | grep SUMMARY | cut -d ',' -f 3,4 | sort -u > qc.txt && \
     /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} > "${Name}.chromoseq.txt"
   >>>
   
