@@ -68,6 +68,19 @@ for rec in vcffile.fetch(reopen=True):
 
     cnts = {'ref':0,'alt':0}
 
+    # first check to see if its an SV with no alleles specified and fix it
+    if 'SVTYPE' in rec.info:
+        
+        if rec.alts[0] == "<DUP>" or rec.alts[0] == "<DUP:TANDEM>":
+            rec.ref = fa.fetch(rec.contig,rec.pos-1,rec.pos)[0]
+            rec.alts = (str(fa.fetch(rec.contig,rec.pos-1,rec.stop)),)
+            rec.info['SVTYPE'] = 'INS'
+
+        elif rec.alts[0] == "<DEL>":
+            rec.ref = fa.fetch(rec.contig,rec.pos-1,rec.stop)[0]
+            rec.alts = (str(fa.fetch(rec.contig,rec.pos-1,rec.pos)),)
+
+                     
     # if the variant is a substitution
     if len(rec.ref) == len(rec.alts[0]) and len(rec.ref) == 1:
 
@@ -209,13 +222,27 @@ for rec in vcffile.fetch(reopen=True):
 
     if myvaf == 0.0:
         continue
-        
+
+    # consolidate and correct format tags
     mysample=0
     mygt = (0,1)
     for s in rec.samples:
-        if rec.samples[s]['GT'] == (1,1) and myvaf > .99:
+        if 'GT' in rec.samples[s].keys() and rec.samples[s]['GT'] == (1,1) and myvaf > .99:
             mygt = (1,1)
- 
+
+        for k in rec.samples[s].keys():
+            if rec.samples[s][k]:
+                if type(rec.samples[mysample][k]) in (tuple,list) and not all(rec.samples[mysample][k]):
+                    if rec.header.formats[k].number == 1 and rec.header.formats[k].type is 'Integer' and type(rec.samples[s][k]) in (tuple,list):
+                        rec.samples[mysample][k] = sum(list(rec.samples[s][k]))
+                    else:
+                        rec.samples[mysample][k] = rec.samples[s][k]
+                elif type(rec.samples[mysample][k]) not in (tuple,list) and rec.samples[mysample][k] is None:
+                    if rec.header.formats[k].number == 1 and rec.header.formats[k].type is 'Integer' and type(rec.samples[s][k]) in (tuple,list):
+                        rec.samples[mysample][k] = sum(list(rec.samples[s][k]))
+                    else:
+                        rec.samples[mysample][k] = rec.samples[s][k]
+                    
     rec.samples[mysample]['GT'] = mygt
     rec.samples[mysample]['NR'] = cnts['alt'] + cnts['ref']
     rec.samples[mysample]['NV'] = cnts['alt']
@@ -232,8 +259,9 @@ for rec in vcffile.fetch(reopen=True):
     else:
         rec.filter.add("PASS")
         ispass = True
-        
-    if PrintAllVariants is True or ispass is True:
+
+    # hard filter if only 1 supporting read
+    if (PrintAllVariants is True or ispass is True) and cnts['alt'] > 1:
         print ("\t".join(str(rec).rstrip().split("\t")[0:10]))
 
 # end vcf fetch

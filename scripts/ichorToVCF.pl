@@ -9,13 +9,15 @@ sub ratio2abundance;
 my $refseq = "~/refdata/hg38/all_sequences.fa";
 
 my $minCNAsize = 5000000;
-my $minCNAabund = 5;
+my $minCNAabund = 10.0;
+my $discardAbund = 5.0;
 my $gender = '';
 
 GetOptions("r=s" => \$refseq,
 	   "g=s" => \$gender,
 	   "s|minsize=i" => \$minCNAsize,
-	   "f|minabund=f" => \$minCNAabund);
+	   "f|minabund=f" => \$minCNAabund,
+	   "m|discardabund=f" => \$discardAbund);
 
 my $segsfile = $ARGV[0];
 
@@ -70,11 +72,18 @@ while(<CNV>){
     # if male and sex chromosome then adjust the normal and observed copy number
     if ($F[1] =~ /X|Y/ and $gender eq 'male'){
 	$nl = 1;
-	$F[6]--;
+	if ($F[5] < 0){
+	    $F[6] = $nl-1;
+	} else {
+	    $F[6] = $nl+1;
+	}
     }
 
     my $abund = sprintf("%.1f",ratio2abundance($F[6],$nl,$F[5]) * 100);
 
+    # do not even report variants that are below $failAbund
+    next if $abund < $discardAbund;
+    
     my @filter = ();
     
     # Filter if too small or too low
