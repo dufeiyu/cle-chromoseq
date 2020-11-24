@@ -739,8 +739,7 @@ task run_haplotect {
      runtime {
              docker_image: "registry.gsc.wustl.edu/mgi-cle/haplotect:0.3"
              cpu: "1"
-             memory_gb: "8"
-             resource: "rusage[gtmp=10, mem=8000]"
+             memory: "8 G"
              queue: queue
              job_group: jobGroup
      }
@@ -778,6 +777,7 @@ task make_report {
   
   runtime {
     docker_image: docker
+    memory: "8 G"
     queue: queue
     job_group: jobGroup
   }
@@ -800,6 +800,7 @@ task gather_files {
   }
   runtime {
     docker_image: "ubuntu:xenial"
+    memory: "4 G"
     queue: queue
     job_group: jobGroup
   }
