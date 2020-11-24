@@ -737,7 +737,7 @@ task run_haplotect {
      >>>
 
      runtime {
-             docker_image: "abelhj/haplotect:0.3"
+             docker_image: "registry.gsc.wustl.edu/mgi-cle/haplotect:0.3"
              cpu: "1"
              memory_gb: "8"
              resource: "rusage[gtmp=10, mem=8000]"
