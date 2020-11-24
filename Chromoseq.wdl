@@ -772,7 +772,7 @@ task make_report {
   Int? MinFracRegion10
   
   command <<<
-    cat ${MappingSummary} ${CoverageSummary} | cut -d ',' -f 3,4 | sort -u > qc.txt && \
+    cat ${MappingSummary} ${CoverageSummary} | grep SUMMARY | cut -d ',' -f 3,4 | sort -u > qc.txt && \
     /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} > "${Name}.chromoseq.txt"
   >>>
   
