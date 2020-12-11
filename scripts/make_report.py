@@ -89,9 +89,9 @@ def convert_aa(codon):
 # Script
 #
 
-MinFracGene20 = 95
+MinFracGene20 = 90
 MinGeneCov = 20
-MinFracRegion10 = 95
+MinFracRegion10 = 90
 MinRegionCov = 10
 MinReads = 3
 MinVAF = 5.0
@@ -539,20 +539,46 @@ with open(haplotect, 'r') as hap:
     for row in reader:
         print("\t".join(row))
 
-print("\n*** Gene Coverage Metrics: Exons with <"+str(MinFracGene20)+"% at 20x or mean coverage <"+str(MinGeneCov)+"x ***\n")
+print("\n*** Exon Coverage Metrics: Exons with <"+str(MinFracGene20)+"% at 20x or mean coverage <"+str(MinGeneCov)+"x ***\n")
 # gene cov
+gc = {}
+gcheader = []
 with open(genecov, 'r') as g:
     reader = csv.reader(g, delimiter='\t')
     line_count = 0
     for row in reader:
         if line_count == 0:
             print("\t".join(row))
+            gcheader = row[4:]
+            line_count += 1
+            continue
+        
         elif float(row[9]) < MinFracGene20 or float(row[12]) < MinGeneCov:
             print("\t".join(row))
+        
+        # get gene name
+        gn = row[3].split("_")[0]
+        if gn not in gc.keys():
+            gc[gn] = {'l':0, 'c':0.0, '10x':0, '20x':0, '30x':0, '40x':0}
+            
+        # sum coverages for each exon
+        gc[gn]['l'] += int(row[2])-int(row[1])
+        gc[gn]['c'] += float(row[12]) * (float(row[2])-float(row[1]))
+        gc[gn]['10x'] += int(row[4])
+        gc[gn]['20x'] += int(row[5])
+        gc[gn]['30x'] += int(row[6])
+        gc[gn]['40x'] += int(row[7])
 
         line_count += 1
         
-        
+print("\n*** Gene Coverage Metrics: Genes with <"+str(MinFracGene20)+"% at 20x or mean coverage <"+str(MinGeneCov)+"x ***\n")
+# print gene coverage metrics if lower than MinFracGene20 or MinGeneCov
+print("#gene\tlength\t" + "\t".join(gcheader))
+for g in gc.keys():
+    if gc[g]['20x'] / gc[g]['l'] * 100 < MinFracGene20 or gc[g]['c'] / gc[g]['l'] < MinGeneCov:
+        print('{}\t{}\t{}\t{}\t{}\t{}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}'.format(g,gc[g]['l'],gc[g]['10x'],gc[g]['20x'],gc[g]['30x'],gc[g]['40x'],gc[g]['10x']/gc[g]['l']*100,gc[g]['20x']/gc[g]['l']*100,gc[g]['30x']/gc[g]['l']*100,gc[g]['40x']/gc[g]['l']*100,gc[g]['c']/gc[g]['l']))
+
+
 print("\n*** SV Region Coverage Metrics: Exons with <"+str(MinFracRegion10)+"% at 20x or mean coverage <"+str(MinRegionCov)+"x ***\n")
 with open(svcov, 'r') as sv:
     reader = csv.reader(sv, delimiter='\t')
