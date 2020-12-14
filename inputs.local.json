@@ -40,7 +40,7 @@
     "ChromoSeq.MinValidatedVAF": 0.05,
     "ChromoSeq.MinValidatedReads": 5,
     "ChromoSeq.MinCovFraction": 90,
-    "ChromoSeq.MinGeneCov": 30,
+    "ChromoSeq.MinGeneCov": 20,
     "ChromoSeq.MinRegionCov": 20,
     "ChromoSeq.Queue": "compute-mgi-cle",
     "ChromoSeq.JobGroup": "/cle/wdl/chromoseq",

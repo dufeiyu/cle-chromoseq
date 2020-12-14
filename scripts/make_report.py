@@ -89,7 +89,7 @@ def convert_aa(codon):
 # Script
 #
 
-MinGeneCov = 30
+MinGeneCov = 20
 MinRegionCov = 20
 MinFracCov = 90
 MinReads = 3
