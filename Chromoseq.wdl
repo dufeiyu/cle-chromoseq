@@ -51,6 +51,10 @@ workflow ChromoSeq {
 
   Int MinValidatedReads
   Float MinValidatedVAF
+
+  Int MinCovFraction
+  Int MinGeneCov
+  Int MinRegionCov
   
   String JobGroup
   String Queue
@@ -253,7 +257,10 @@ workflow ChromoSeq {
     CoverageSummary=CoverageSummary,
     Name=Name,
     MinReads=MinValidatedReads,
-    MinVAF=MinValidatedVAF,    
+    MinVAF=MinValidatedVAF,
+    MinFracCov=MinCovFraction,
+    MinGeneCov=MinGeneCov,
+    MinRegionCov=MinRegionCov,
     queue=Queue,
     jobGroup=JobGroup,
     docker=chromoseq_docker,
@@ -767,13 +774,12 @@ task make_report {
   Int? MinReads
   Float? MinVAF
   Int? MinGeneCov
-  Int? MinFracGene20
   Int? MinRegionCov
-  Int? MinFracRegion10
+  Int? MinFracCov
   
   command <<<
     cat ${MappingSummary} ${CoverageSummary} | grep SUMMARY | cut -d ',' -f 3,4 | sort -u > qc.txt && \
-    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} > "${Name}.chromoseq.txt"
+    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} -g ${default=30 MinGeneCov} -s ${default=20 MinRegionCov} -f ${default=90 MinFracCov} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} > "${Name}.chromoseq.txt"
   >>>
   
   runtime {
