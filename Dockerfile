@@ -336,8 +336,8 @@ COPY accessory_files/hg38.cytoBandIdeo.bed.gz.tbi /opt/files/hg38.cytoBandIdeo.b
 COPY accessory_files/chromoseq_sv_filter.bedpe.gz /opt/files/chromoseq_sv_filter.bedpe.gz
 COPY accessory_files/chromoseq_translocations.bedpe /opt/files/chromoseq_translocations.bedpe
 
-COPY accessory_files/chromoseq_custom_anntations.040920.vcf.gz /opt/files/chromoseq_custom_anntations.040920.vcf.gz
-COPY accessory_files/chromoseq_custom_anntations.040920.vcf.gz.tbi /opt/files/chromoseq_custom_anntations.040920.vcf.gz.tbi
+COPY accessory_files/chromoseq_custom_annotations.vcf.gz /opt/files/chromoseq_custom_annotations.vcf.gz
+COPY accessory_files/chromoseq_custom_annotations.vcf.gz.tbi /opt/files/chromoseq_custom_annotations.vcf.gz.tbi
 COPY accessory_files/chromoseq_hotspot.vcf.gz /opt/files/chromoseq_hotspot.vcf.gz
 COPY accessory_files/chromoseq_hotspot.vcf.gz.tbi /opt/files/chromoseq_hotspot.vcf.gz.tbi
 

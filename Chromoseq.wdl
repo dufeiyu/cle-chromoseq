@@ -382,7 +382,7 @@ task run_manta {
     ./manta/runWorkflow.py -m local -q research-hpc -j 4 -g 32 && \
     zcat ./manta/results/variants/tumorSV.vcf.gz | /bin/sed 's/DUP:TANDEM/DUP/g' > fixed.vcf && \
     /usr/local/bin/duphold_static -v fixed.vcf -b ${Bam} -f ${Reference} -t 4 -o ${Name}.tumorSV.vcf && \
-    /opt/conda/bin/bgzip ${Name}.tumorSV.vcf && /usr/bin/tabix ${Name}.tumorSV.vcf.gz
+    /opt/conda/bin/bgzip ${Name}.tumorSV.vcf && /usr/bin/tabix -p vcf ${Name}.tumorSV.vcf.gz
   >>>
   runtime {
     docker_image: docker
@@ -472,7 +472,7 @@ task run_varscan_snv {
   command <<<
     /usr/local/bin/samtools mpileup -f ${refFasta} -l ${CoverageBed} ${Bam} > ${tmp}/mpileup.out && \
     java -Xmx12g -jar /opt/varscan/VarScan.jar mpileup2snp ${tmp}/mpileup.out --min-coverage ${default=6 MinCov} --min-reads2 ${default=3 MinReads} \
-    --min-var-freq ${default="0.02" MinFreq} --p-value ${default="0.01" pvalsnv} --output-vcf | /opt/conda/bin/bgzip -c > ${Name}.varscan_snv.vcf.gz && /opt/conda/bin/tabix ${Name}.varscan_snv.vcf.gz
+    --min-var-freq ${default="0.02" MinFreq} --p-value ${default="0.01" pvalsnv} --output-vcf | /opt/conda/bin/bgzip -c > ${Name}.varscan_snv.vcf.gz && /opt/conda/bin/tabix -p vcf ${Name}.varscan_snv.vcf.gz
   >>>
   
   runtime {
@@ -505,7 +505,7 @@ task run_varscan_indel {
   command <<<
     /usr/local/bin/samtools mpileup -f ${refFasta} -l ${CoverageBed} ${Bam} > ${tmp}/mpileup.out && \
     java -Xmx12g -jar /opt/varscan/VarScan.jar mpileup2indel ${tmp}/mpileup.out --min-coverage ${default=6 MinCov} --min-reads2 ${default=3 MinReads} \
-    --min-var-freq ${default="0.02" MinFreq} --p-value ${default="0.1" pvalindel} --output-vcf | /opt/conda/bin/bgzip -c > ${Name}.varscan_indel.vcf.gz && /opt/conda/bin/tabix ${Name}.varscan_indel.vcf.gz
+    --min-var-freq ${default="0.02" MinFreq} --p-value ${default="0.1" pvalindel} --output-vcf | /opt/conda/bin/bgzip -c > ${Name}.varscan_indel.vcf.gz && /opt/conda/bin/tabix -p vcf ${Name}.varscan_indel.vcf.gz
   >>>
   
   runtime {
@@ -538,7 +538,7 @@ task run_pindel_indels {
     (set -eo pipefail && /usr/local/bin/samtools view -T ${refFasta} -ML ${Reg} ${Bam} | /opt/pindel-0.2.5b8/sam2pindel - ${tmp}/in.pindel ${default=250 Isize} tumor 0 Illumina-PairEnd) && \
     /usr/local/bin/pindel -f ${refFasta} -p ${tmp}/in.pindel -j ${Reg} -o ${tmp}/out.pindel && \
     /usr/local/bin/pindel2vcf -P ${tmp}/out.pindel -G -r ${refFasta} -e ${default=3 MinReads} -R ${default="hg38" genome} -d ${default="hg38" genome} -v ${tmp}/pindel.vcf && \
-    /bin/sed 's/END=[0-9]*\;//' ${tmp}/pindel.vcf | /opt/conda/bin/bgzip -c > ${Name}.pindel.vcf.gz && /opt/conda/bin/tabix ${Name}.pindel.vcf.gz
+    /bin/sed 's/END=[0-9]*\;//' ${tmp}/pindel.vcf | /opt/conda/bin/bgzip -c > ${Name}.pindel.vcf.gz && /opt/conda/bin/tabix -p vcf ${Name}.pindel.vcf.gz
   >>>
   
   runtime {
@@ -571,7 +571,7 @@ task run_manta_indels {
     /opt/conda/bin/bgzip -c ${Reg} > ${tmp}/reg.bed.gz && /opt/conda/bin/tabix -p bed ${tmp}/reg.bed.gz && \
     /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${refFasta} --runDir=manta --callRegions=${tmp}/reg.bed.gz --outputContig --exome && \
     ./manta/runWorkflow.py -m local -q research-hpc -j 4 -g 32 && \
-    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/fixITDs.py -r ${refFasta} ./manta/results/variants/tumorSV.vcf.gz | /opt/conda/bin/bgzip -c > ${Name}.manta.vcf.gz &&
+    /opt/conda/bin/python /usr/local/bin/fixITDs.py -r ${refFasta} ./manta/results/variants/tumorSV.vcf.gz | /opt/conda/bin/bgzip -c > ${Name}.manta.vcf.gz &&
     /opt/conda/bin/tabix -p vcf ${Name}.manta.vcf.gz
   >>>
   
@@ -603,7 +603,7 @@ task combine_variants {
   command {
     /opt/conda/envs/python2/bin/bcftools merge --force-samples -O z ${sep=" " VCFs} | \
     /opt/conda/envs/python2/bin/bcftools norm -d none -f ${refFasta} -O z > ${tmp}/combined.vcf.gz && /usr/bin/tabix -p vcf ${tmp}/combined.vcf.gz && \
-    /opt/conda/bin/python /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/addReadCountsToVcfCRAM.py -f -n ${MinReads} -v ${MinVAF} -r ${refFasta} ${tmp}/combined.vcf.gz ${Bam} ${Name} | \
+    /opt/conda/bin/python /usr/local/bin/addReadCountsToVcfCRAM.py -f -n ${MinReads} -v ${MinVAF} -r ${refFasta} ${tmp}/combined.vcf.gz ${Bam} ${Name} | \
     /opt/conda/bin/bgzip -c > ${Name}.combined_tagged.vcf.gz && /usr/bin/tabix -p vcf ${Name}.combined_tagged.vcf.gz
   }
   runtime {
@@ -682,11 +682,11 @@ task annotate_svs {
   
   command {
     set -eo pipefail && \
-    perl /gscmnt/gc2555/spencer/dhs/git/cle-chromoseq/scripts/ichorToVCF.pl -g ${gender} -minsize ${minCNAsize} \
+    /usr/bin/perl /usr/local/bin/ichorToVCF.pl -g ${gender} -minsize ${minCNAsize} \
     -minabund ${minCNAabund} -r ${refFasta} ${CNV} | /opt/conda/bin/bgzip -c > cnv.vcf.gz && \
     /opt/htslib/bin/tabix -p vcf cnv.vcf.gz && \
     /opt/conda/envs/python2/bin/bcftools query -l cnv.vcf.gz > name.txt && \
-    perl /usr/local/bin/FilterManta.pl -a ${minCNAabund} -r ${refFasta} -k ${Translocations} ${Vcf} filtered.vcf && \
+    /usr/bin/perl /usr/local/bin/FilterManta.pl -a ${minCNAabund} -r ${refFasta} -k ${Translocations} ${Vcf} filtered.vcf && \
     /opt/conda/envs/python2/bin/svtools afreq filtered.vcf | \
     /opt/conda/envs/python2/bin/svtools vcftobedpe -i stdin | \
     /opt/conda/envs/python2/bin/svtools varlookup -d 200 -c BLACKLIST -a stdin -b ${SVAnnot} | \
@@ -744,10 +744,9 @@ task run_haplotect {
      >>>
 
      runtime {
-             docker_image: "abelhj/haplotect:0.3"
+             docker_image: "registry.gsc.wustl.edu/mgi-cle/haplotect:0.3"
              cpu: "1"
-             memory_gb: "8"
-             resource: "rusage[gtmp=10, mem=8000]"
+             memory: "8 G"
              queue: queue
              job_group: jobGroup
      }
@@ -784,6 +783,7 @@ task make_report {
   
   runtime {
     docker_image: docker
+    memory: "8 G"
     queue: queue
     job_group: jobGroup
   }
@@ -806,6 +806,7 @@ task gather_files {
   }
   runtime {
     docker_image: "ubuntu:xenial"
+    memory: "4 G"
     queue: queue
     job_group: jobGroup
   }

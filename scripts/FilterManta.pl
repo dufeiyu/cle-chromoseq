@@ -7,6 +7,7 @@ use strict;
 my $svtools = "/opt/conda/envs/python2/bin/svtools";
 my $bedtools = "/usr/local/bin/bedtools";
 my $minimap = "/usr/local/bin/minimap2";
+my $tee = "/usr/bin/tee";
 my $refseq = "/gscuser/dspencer/refdata/hg38/all_sequences.fa";
 my $tmp = "/tmp";
 
@@ -91,7 +92,7 @@ my %hits = (); # hash of hits
 my %totalhits = ();
 
 # map fastq file to reference with minimap2 and iterate through records
-open(SAM,"$minimap -N 50 -p 0.5 --mask-level 0.8 -ax sr $refseq $tmp/input.fq | tee minimap.sam |") || die;
+open(SAM,"$minimap -N 50 -p 0.5 --mask-level 0.8 -ax sr $refseq $tmp/input.fq | $tee minimap.sam |") || die;
 open(D,">minimap.tsv") || die;
 while(<SAM>){
     chomp;
