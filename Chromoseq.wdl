@@ -379,7 +379,7 @@ task run_manta {
     set -eo pipefail && \
     /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${Reference} \
     --runDir=manta --callRegions=${ReferenceBED} --outputContig && \
-    ./manta/runWorkflow.py -m local -q research-hpc -j 4 -g 32 && \
+    ./manta/runWorkflow.py -m local -q ${queue} -j 4 -g 32 && \
     zcat ./manta/results/variants/tumorSV.vcf.gz | /bin/sed 's/DUP:TANDEM/DUP/g' > fixed.vcf && \
     /usr/local/bin/duphold_static -v fixed.vcf -b ${Bam} -f ${Reference} -t 4 -o ${Name}.tumorSV.vcf && \
     /opt/conda/bin/bgzip ${Name}.tumorSV.vcf && /usr/bin/tabix -p vcf ${Name}.tumorSV.vcf.gz
@@ -570,7 +570,7 @@ task run_manta_indels {
     set -eo pipefail && 
     /opt/conda/bin/bgzip -c ${Reg} > ${tmp}/reg.bed.gz && /opt/conda/bin/tabix -p bed ${tmp}/reg.bed.gz && \
     /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${refFasta} --runDir=manta --callRegions=${tmp}/reg.bed.gz --outputContig --exome && \
-    ./manta/runWorkflow.py -m local -q research-hpc -j 4 -g 32 && \
+    ./manta/runWorkflow.py -m local -q ${queue} -j 4 -g 32 && \
     /opt/conda/bin/python /usr/local/bin/fixITDs.py -r ${refFasta} ./manta/results/variants/tumorSV.vcf.gz | /opt/conda/bin/bgzip -c > ${Name}.manta.vcf.gz &&
     /opt/conda/bin/tabix -p vcf ${Name}.manta.vcf.gz
   >>>
