@@ -379,7 +379,7 @@ task run_manta {
     set -eo pipefail && \
     /usr/local/src/manta/bin/configManta.py --config=${Config} --tumorBam=${Bam} --referenceFasta=${Reference} \
     --runDir=manta --callRegions=${ReferenceBED} --outputContig && \
-    ./manta/runWorkflow.py -m local -q ${queue} -j 4 -g 32 && \
+    ./manta/runWorkflow.py -m local -q ${queue} -j 32 -g 32 && \
     zcat ./manta/results/variants/tumorSV.vcf.gz | /bin/sed 's/DUP:TANDEM/DUP/g' > fixed.vcf && \
     /usr/local/bin/duphold_static -v fixed.vcf -b ${Bam} -f ${Reference} -t 4 -o ${Name}.tumorSV.vcf && \
     /opt/conda/bin/bgzip ${Name}.tumorSV.vcf && /usr/bin/tabix -p vcf ${Name}.tumorSV.vcf.gz
