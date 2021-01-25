@@ -202,7 +202,11 @@ ENV manta_version 1.5.0
 WORKDIR /opt/
 RUN wget https://github.com/Illumina/manta/releases/download/v${manta_version}/manta-${manta_version}.centos6_x86_64.tar.bz2 && \
     tar -jxvf manta-${manta_version}.centos6_x86_64.tar.bz2 && \
-    mv manta-${manta_version}.centos6_x86_64 /usr/local/src/manta
+    rm -rf manta-${manta_version}.centos6_x86_64/lib/python/mantaOptions.py && \
+    rm -rf manta-${manta_version}.centos6_x86_64/lib/python/mantaOptions.pyc
+COPY scripts/mantaOptions.py manta-${manta_version}.centos6_x86_64/lib/python
+COPY scripts/mantaOptions.pyc manta-${manta_version}.centos6_x86_64/lib/python
+RUN mv manta-${manta_version}.centos6_x86_64 /usr/local/src/manta
 
 #
 # install varscan
