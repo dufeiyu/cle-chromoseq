@@ -298,7 +298,7 @@ while(<VCF>){
 			       $i->[3] eq $chr1 && $pos1 < $i->[5]+$slop && $pos1 > $i->[4]-$slop)) &&
 			       (($orientation eq 'same' && $i->[8] eq $i->[9]) || ($orientation eq 'opposite' && $i->[8] ne $i->[9])));
 		}
-	push @filter, "FailedContig" if $foundhit;
+	push @filter, "FailedContig" if $foundhit == 0;
 	
     }
     $F[6] = join(';',@filter);
