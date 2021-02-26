@@ -1,14 +1,37 @@
 workflow ChromoSeq {
 
-  String Cram
-  String CramIndex 
-  String Name
-  String Gender
-  String MappingSummary
-  String? CoverageSummary
-  String TumorCounts
-  String OutputDir
+  # this is the path of the illumina run directory on storage1 after rsync from storage0
+  String RunDir
+
+  # Fastq path
+  String FastqDir
+   
+  # Illlumina-compatible samplesheet for demuxing, prepared from launcher script using excel spreadsheet as input
+  String SampleSheet
+
+  # lane, if one is specified
+  String? Lane
+
+  # array of genders. Will have to be prepared from excel spreadsheet
+  Array[String] Genders
+
+  # sample names
+  Array[String] Samples
+
+  # name of batch
+  String Batch
+
+  # The root directory where all the batches are stored
+  String SeqDir
   
+  # directory on storage1 where the output will be stored
+  String BatchDir = SeqDir + '/' + Batch
+  String BatchFastqDir = FastqDir + '/' + Batch
+  
+  String DBSNP
+  String DOCM
+  String NoiseFile
+
   String Translocations
   String GenesBed
   
@@ -30,6 +53,8 @@ workflow ChromoSeq {
   String ReferenceDict
   String ReferenceIndex
   String ReferenceBED
+
+  String DragenReference
   String VEP
 
   String gcWig
@@ -46,6 +71,7 @@ workflow ChromoSeq {
   Float varscanPvalindel
   Float varscanPvalsnv
 
+  Int CNAbinsize = 500000
   Int MinCNASize = 5000000
   Float MinCNAabund = 10.0
 
@@ -58,8 +84,10 @@ workflow ChromoSeq {
   
   String JobGroup
   String Queue
+  String DragenQueue
 
   String chromoseq_docker
+  String DragenDocker
 
   call prepare_bed {
     input: Bedpe=Translocations,
@@ -70,232 +98,259 @@ workflow ChromoSeq {
     tmp=tmp,
     docker=chromoseq_docker
   }
+
+  call dragen_demux {
+    input: rundir=RunDir,
+    BatchFastqDir=BatchFastqDir,
+    sheet=SampleSheet,
+    lane=Lane,
+    jobGroup=JobGroup,
+    queue=DragenQueue,
+    docker=DragenDocker
+  }
+
+  scatter(i in range(length(Samples))){
+    call dragen_align {
+      input: BatchDir=BatchDir,
+      fastqfile=dragen_demux.fastqfile,
+      sample=Samples[i],
+      gender=Genders[i],
+      Reference=DragenReference,
+      ReferenceBed=ReferenceBED,
+      CNAbinsize=CNAbinsize,
+      DBSNP=DBSNP,
+      DOCM=DOCM,
+      NoiseFile=NoiseFile,
+      jobGroup=JobGroup,
+      queue=DragenQueue,
+      docker=DragenDocker
+    }
+
+    call cov_qc as gene_qc {
+      input: Cram=dragen_align.cram,
+      CramIndex=dragen_align.index,
+      Name=Samples[i],
+      Bed=GenesBed,
+      refFasta=Reference,
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
+
+    call cov_qc as sv_qc {
+      input: Cram=dragen_align.cram,
+      CramIndex=dragen_align.index,
+      Name=Samples[i],
+      Bed=prepare_bed.svbed,
+      refFasta=Reference,
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
     
-  call cov_qc as gene_qc {
-    input: Cram=Cram,
-    CramIndex=CramIndex,
-    Name=Name,
-    Bed=GenesBed,
-    refFasta=Reference,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
-  }
+    call run_manta {
+      input: Bam=dragen_align.cram,
+      BamIndex=dragen_align.index,
+      Config=MantaConfig,
+      Reference=Reference,
+      ReferenceBED=ReferenceBED,
+      Name=Samples[i],
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
 
-  call cov_qc as sv_qc {
-    input: Cram=Cram,
-    CramIndex=CramIndex,
-    Name=Name,
-    Bed=prepare_bed.svbed,
-    refFasta=Reference,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
-  }
-  
-  call run_manta {
-    input: Bam=Cram,
-    BamIndex=CramIndex,
-    Config=MantaConfig,
-    Reference=Reference,
-    ReferenceBED=ReferenceBED,
-    Name=Name,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
-  }
+    call run_ichor {
+      input: Bam=dragen_align.cram,
+      BamIndex=dragen_align.index,
+      refFasta=Reference,
+      ReferenceBED=ReferenceBED,
+      tumorCounts=dragen_align.counts,
+      gender=Genders[i],
+      gcWig=gcWig,
+      mapWig=mapWig,
+      ponRds=ponRds,
+      centromeres=centromeres,
+      Name=Samples[i],
+      genomeStyle=genomeStyle,
+      genome=genome,
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
+    
+    call run_varscan_indel {
+      input: Bam=dragen_align.cram,
+      BamIndex=dragen_align.index,
+      CoverageBed=GenesBed,
+      MinFreq=minVarFreq,
+      pvalindel=varscanPvalindel,
+      refFasta=Reference,
+      Name=Samples[i],
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
 
-  call run_ichor {
-    input: Bam=Cram,
-    BamIndex=CramIndex,
-    refFasta=Reference,
-    ReferenceBED=ReferenceBED,
-    tumorCounts=TumorCounts,
-    gender=Gender,
-    gcWig=gcWig,
-    mapWig=mapWig,
-    ponRds=ponRds,
-    centromeres=centromeres,
-    Name=Name,
-    genomeStyle=genomeStyle,
-    genome=genome,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
-  }
-  
-  call run_varscan_indel {
-    input: Bam=Cram,
-    BamIndex=CramIndex,
-    CoverageBed=GenesBed,
-    MinFreq=minVarFreq,
-    pvalindel=varscanPvalindel,
-    refFasta=Reference,
-    Name=Name,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
-  }
+    call run_varscan_snv {
+      input: Bam=dragen_align.cram,
+      BamIndex=dragen_align.index,
+      CoverageBed=GenesBed,
+      MinFreq=minVarFreq,
+      pvalsnv=varscanPvalsnv,
+      refFasta=Reference,
+      Name=Samples[i],
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
+    
+    call run_manta_indels {
+      input: Bam=dragen_align.cram,
+      BamIndex=dragen_align.index,
+      Reg=GenesBed,
+      Config=MantaRegionConfig,
+      refFasta=Reference,
+      Name=Samples[i],
+      genome=genome,
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
 
- call run_varscan_snv {
-    input: Bam=Cram,
-    BamIndex=CramIndex,
-    CoverageBed=GenesBed,
-    MinFreq=minVarFreq,
-    pvalsnv=varscanPvalsnv,
-    refFasta=Reference,
-    Name=Name,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
-  }
-  
-  call run_manta_indels {
-    input: Bam=Cram,
-    BamIndex=CramIndex,
-    Reg=GenesBed,
-    Config=MantaRegionConfig,
-    refFasta=Reference,
-    Name=Name,
-    genome=genome,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
-  }
+    call run_pindel_indels {
+      input: Bam=dragen_align.cram,
+      BamIndex=dragen_align.index,
+      Reg=GenesBed,
+      refFasta=Reference,
+      Name=Samples[i],
+      genome=genome,
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
 
-  call run_pindel_indels {
-    input: Bam=Cram,
-    BamIndex=CramIndex,
-    Reg=GenesBed,
-    refFasta=Reference,
-    Name=Name,
-    genome=genome,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
-  }
+    call combine_variants {
+      input: VCFs=[run_varscan_snv.vcf,
+      run_varscan_indel.vcf,run_pindel_indels.vcf,
+      run_manta_indels.vcf,
+      HotspotVCF],
+      MinVAF=minVarFreq,
+      MinReads=MinReads,
+      Bam=dragen_align.cram,
+      BamIndex=dragen_align.index,
+      refFasta=Reference,
+      Name=Samples[i],
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
+    
+    call annotate_variants {
+      input: Vcf=combine_variants.combined_vcf_file,
+      refFasta=Reference,
+      Vepcache=VEP,
+      Cytobands=Cytobands,
+      CustomAnnotationVcf=CustomAnnotationVcf,
+      CustomAnnotationIndex=CustomAnnotationIndex,
+      CustomAnnotationParameters=CustomAnnotationParameters,
+      FilterString=GeneFilterString,
+      Name=Samples[i],
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
+    
+    call annotate_svs {
+      input: Vcf=run_manta.vcf,
+      CNV=run_ichor.seg,
+      refFasta=Reference,
+      refFastaIndex=ReferenceIndex,
+      Vepcache=VEP,
+      SVAnnot=SVDB,
+      Translocations=Translocations,
+      Cytobands=Cytobands,
+      minCNAsize=MinCNASize,
+      minCNAabund=MinCNAabund,
+      Name=Samples[i],
+      gender=Genders[i],
+      queue=Queue,
+      jobGroup=JobGroup,
+      tmp=tmp,
+      docker=chromoseq_docker
+    }
+    
+    call run_haplotect {
+      input: refFasta=Reference,
+      refDict=ReferenceDict,
+      Cram=dragen_align.cram,
+      CramIndex=dragen_align.index,
+      Bed=HaplotectBed,
+      Name=Samples[i],
+      queue=Queue,
+      jobGroup=JobGroup
+    }
 
-  call combine_variants {
-    input: VCFs=[run_varscan_snv.vcf,
-    run_varscan_indel.vcf,run_pindel_indels.vcf,
-    run_manta_indels.vcf,
-    HotspotVCF],
-    MinVAF=minVarFreq,
-    MinReads=MinReads,
-    Bam=Cram,
-    BamIndex=CramIndex,
-    refFasta=Reference,
-    Name=Name,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
+    call make_report {
+      input: SVVCF=annotate_svs.vcf,
+      GeneVCF=annotate_variants.annotated_filtered_vcf,
+      KnownGenes=prepare_bed.genes,
+      GeneQC=gene_qc.qc_out,
+      SVQC=sv_qc.qc_out,
+      Haplotect=run_haplotect.out_file,
+      MappingSummary=dragen_align.mapping_summary,
+      CoverageSummary=dragen_align.coverage_summary,
+      Name=Samples[i],
+      MinReads=MinValidatedReads,
+      MinVAF=MinValidatedVAF,
+      MinFracCov=MinCovFraction,
+      MinGeneCov=MinGeneCov,
+      MinRegionCov=MinRegionCov,
+      queue=Queue,
+      jobGroup=JobGroup,
+      docker=chromoseq_docker,
+      tmp=tmp
+    }
+    
+    call gather_files {
+      input: OutputFiles=[annotate_svs.vcf,
+      annotate_svs.vcf_index,
+      annotate_svs.allvcf,
+      annotate_svs.allvcf_index,
+      annotate_variants.annotated_filtered_vcf,
+      annotate_variants.annotated_filtered_vcf_index,
+      annotate_variants.annotated_vcf,
+      annotate_variants.annotated_vcf_index,
+      run_ichor.params,
+      run_ichor.seg,
+      run_ichor.genomewide_pdf,
+      run_ichor.allgenomewide_pdf,
+      run_ichor.rdata,run_ichor.wig,
+      run_ichor.correct_pdf,
+      gene_qc.qc_out,
+      gene_qc.region_dist,
+      gene_qc.global_dist,
+      sv_qc.qc_out,
+      sv_qc.region_dist,
+      run_haplotect.out_file,
+      run_haplotect.sites_file,
+      make_report.report],
+      OutputDir=BatchDir + "/" + Samples[i],
+      queue=Queue,
+      jobGroup=JobGroup,
+      docker=chromoseq_docker
+    }
   }
-  
-  call annotate_variants {
-    input: Vcf=combine_variants.combined_vcf_file,
-    refFasta=Reference,
-    Vepcache=VEP,
-    Cytobands=Cytobands,
-    CustomAnnotationVcf=CustomAnnotationVcf,
-    CustomAnnotationIndex=CustomAnnotationIndex,
-    CustomAnnotationParameters=CustomAnnotationParameters,
-    FilterString=GeneFilterString,
-    Name=Name,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
-  }
-  
-  call annotate_svs {
-    input: Vcf=run_manta.vcf,
-    CNV=run_ichor.seg,
-    refFasta=Reference,
-    refFastaIndex=ReferenceIndex,
-    Vepcache=VEP,
-    SVAnnot=SVDB,
-    Translocations=Translocations,
-    Cytobands=Cytobands,
-    minCNAsize=MinCNASize,
-    minCNAabund=MinCNAabund,
-    Name=Name,
-    gender=Gender,
-    queue=Queue,
-    jobGroup=JobGroup,
-    tmp=tmp,
-    docker=chromoseq_docker
-  }
-  
-  call run_haplotect {
-    input: refFasta=Reference,
-    refDict=ReferenceDict,
-    Cram=Cram,
-    CramIndex=CramIndex,
-    Bed=HaplotectBed,
-    Name=Name,
-    queue=Queue,
-    jobGroup=JobGroup
-  }
-
-  call make_report {
-    input: SVVCF=annotate_svs.vcf,
-    GeneVCF=annotate_variants.annotated_filtered_vcf,
-    KnownGenes=prepare_bed.genes,
-    GeneQC=gene_qc.qc_out,
-    SVQC=sv_qc.qc_out,
-    Haplotect=run_haplotect.out_file,
-    MappingSummary=MappingSummary,
-    CoverageSummary=CoverageSummary,
-    Name=Name,
-    MinReads=MinValidatedReads,
-    MinVAF=MinValidatedVAF,
-    MinFracCov=MinCovFraction,
-    MinGeneCov=MinGeneCov,
-    MinRegionCov=MinRegionCov,
-    queue=Queue,
-    jobGroup=JobGroup,
-    docker=chromoseq_docker,
-    tmp=tmp
-  }
-  
-  call gather_files {
-    input: OutputFiles=[annotate_svs.vcf,
-    annotate_svs.vcf_index,
-    annotate_svs.allvcf,
-    annotate_svs.allvcf_index,
-    annotate_variants.annotated_filtered_vcf,
-    annotate_variants.annotated_filtered_vcf_index,
-    annotate_variants.annotated_vcf,
-    annotate_variants.annotated_vcf_index,
-    run_ichor.params,
-    run_ichor.seg,
-    run_ichor.genomewide_pdf,
-    run_ichor.allgenomewide_pdf,
-    run_ichor.rdata,run_ichor.wig,
-    run_ichor.correct_pdf,
-    gene_qc.qc_out,
-    gene_qc.region_dist,
-    gene_qc.global_dist,
-    sv_qc.qc_out,
-    sv_qc.region_dist,
-    run_haplotect.out_file,
-    run_haplotect.sites_file,
-    make_report.report],
-    OutputDir=OutputDir,
-    queue=Queue,
-    jobGroup=JobGroup,
-    docker=chromoseq_docker
-  }
-  
 }
 
 task prepare_bed {
@@ -325,6 +380,89 @@ task prepare_bed {
     File svbed = "sv.bed"
     File genes = "genes.txt"
     Array[String] chroms = read_lines("chroms.txt")
+  }
+}
+
+task dragen_demux {
+  String BatchFastqDir
+  String rundir # we need the directory and the name. Might be able to just run a $(basename) in the command.
+
+  String sheet
+  String? lane
+
+  String queue
+  String docker
+  String jobGroup
+
+  command {
+    if [ -n "${lane}" ]; then
+      /opt/edico/bin/dragen --bcl-conversion-only true --bcl-only-matched-reads true --strict-mode true --sample-sheet ${sheet} --bcl-input-directory ${rundir} --output-directory ${BatchFastqDir} --bcl-only-lane ${lane}
+    else
+      /opt/edico/bin/dragen --bcl-conversion-only true --bcl-only-matched-reads true --strict-mode true --sample-sheet ${sheet} --bcl-input-directory ${rundir} --output-directory ${BatchFastqDir}
+    fi
+  }
+
+  runtime {
+    docker_image: docker
+    cpu: "20"
+    memory: "200 G"
+    queue: queue
+    job_group: jobGroup
+  }
+
+  output {
+    String fastqdir = "${BatchFastqDir}/"
+    File fastqfile = "${BatchFastqDir}/Reports/fastq_list.csv"
+  }
+}
+
+task dragen_align {
+  String BatchDir
+  String fastqfile
+  String sample
+  String gender
+  
+  String Reference
+  String ReferenceBed
+  Int CNAbinsize
+  String DBSNP
+  String DOCM
+  String NoiseFile
+  String queue
+  String docker
+  String jobGroup
+
+  String outdir = BatchDir + "/" + sample
+  
+  command {
+    if [ ! -d "${BatchDir}" ]; then
+      /bin/mkdir ${BatchDir}
+    fi
+
+    /bin/mkdir ${outdir} && \
+    /opt/edico/bin/dragen -r ${Reference} --sample-sex ${gender} \
+    --tumor-fastq-list ${fastqfile} --tumor-fastq-list-sample-id ${sample} \
+    --enable-map-align-output true --enable-bam-indexing true --enable-duplicate-marking true \
+    --enable-variant-caller true --dbsnp ${DBSNP}  --vc-somatic-hotspots ${DOCM} --vc-systematic-noise ${NoiseFile} \
+    --enable-cnv true --cnv-target-bed ${ReferenceBed} --cnv-interval-width ${CNAbinsize} \
+    --enable-sv true --sv-exome true --sv-output-contigs true --sv-hyper-sensitivity true \
+    --output-format CRAM --output-directory ${outdir} --output-file-prefix ${sample}    
+  }
+
+  runtime {
+    docker_image: docker
+    cpu: "20"
+    memory: "200 G"
+    queue: queue
+    job_group: jobGroup
+  }
+
+  output {
+    File cram = "${outdir}/${sample}_tumor.cram"
+    File index = "${outdir}/${sample}_tumor.cram.crai"
+    File counts = "${outdir}/${sample}.target.counts.gz"
+    File mapping_summary = "${outdir}/${sample}.mapping_metrics.csv"
+    File coverage_summary = "${outdir}/${sample}.wgs_coverage_metrics.csv"
   }
 }
 
@@ -360,7 +498,6 @@ task cov_qc {
     File global_dist = "${Name}.mosdepth.global.dist.txt"
     File region_dist = glob("*.region.dist.txt")[0]
   }
-
 }
 
 task run_manta {
@@ -419,7 +556,7 @@ task run_ichor {
   
   command <<<
     set -eo pipefail && \
-    tail -n +6 ${tumorCounts} | sort -k 1V,1 -k 2n,2 | awk -v window=500000 'BEGIN { chr=""; } { if ($1!=chr){ printf("fixedStep chrom=%s start=1 step=%d span=%d\n",$1,window,window); chr=$1; } print $5; }' > "${Name}.tumor.wig" && \
+    zcat ${tumorCounts} | tail -n +6 | sort -k 1V,1 -k 2n,2 | awk -v window=500000 'BEGIN { chr=""; } { if ($1!=chr){ printf("fixedStep chrom=%s start=1 step=%d span=%d\n",$1,window,window); chr=$1; } print $5; }' > "${Name}.tumor.wig" && \
     /usr/local/bin/Rscript /usr/local/bin/ichorCNA/scripts/runIchorCNA.R --id ${Name} \
     --WIG "${Name}.tumor.wig" --ploidy "c(2)" --normal "c(0.1,0.5,.85)" --maxCN 3 \
     --gcWig ${gcWig} \
@@ -616,7 +753,6 @@ task combine_variants {
   output {
     File combined_vcf_file = "${Name}.combined_tagged.vcf.gz"
   }
-
 }
 
 task annotate_variants {
@@ -721,7 +857,6 @@ task annotate_svs {
   }
 }
 
-
 task run_haplotect {
      String Cram
      String CramIndex
@@ -791,7 +926,6 @@ task make_report {
   output {
     File report = "${Name}.chromoseq.txt"
   }
-  
 }
 
 task gather_files {
@@ -815,3 +949,43 @@ task gather_files {
   }
 }
 
+task archive_fastqs {
+  String orderby
+  String fromdir
+  String todir
+  String queue
+  String jobGroup
+  
+  command {
+    /bin/mv -f -t ${todir}/ ${fromdir}/*
+  }
+  runtime {
+    docker_image: "ubuntu:xenial"
+    queue: queue
+    job_group: jobGroup
+  }
+  
+  output {
+    String done = stdout()
+  }
+}
+
+task remove_rundir {
+  String orderby
+  String rmdir
+  String queue
+  String jobGroup
+  
+  command {
+    /bin/rm -Rf ${rmdir}
+    
+  }
+  runtime {
+    docker_image: "ubuntu:xenial"
+    queue: queue
+    job_group: jobGroup
+  }
+  output {
+    String done = stdout()
+  }
+}
