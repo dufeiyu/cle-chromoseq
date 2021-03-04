@@ -4,7 +4,7 @@ workflow ChromoSeq {
   String RunDir
 
   # Fastq path
-  String FastqDir
+  #String FastqDir
    
   # Illlumina-compatible samplesheet for demuxing, prepared from launcher script using excel spreadsheet as input
   String SampleSheet
@@ -26,11 +26,11 @@ workflow ChromoSeq {
   
   # directory on storage1 where the output will be stored
   String BatchDir = SeqDir + '/' + Batch
-  String BatchFastqDir = FastqDir + '/' + Batch
+  #String BatchFastqDir = FastqDir + '/' + Batch
   
-  String DBSNP
-  String DOCM
-  String NoiseFile
+  String DBSNP     = "/staging/runs/Chromoseq/dragen_align_inputs/hg38/dbsnp.vcf.gz"
+  String DOCM      = "/staging/runs/Chromoseq/dragen_align_inputs/hg38/docm.vcf.gz"
+  String NoiseFile = "/staging/runs/Chromoseq/dragen_align_inputs/hg38/dragen_v1.0_systematic_noise.nextera_wgs.120920.bed.gz"
 
   String Translocations
   String GenesBed
@@ -54,7 +54,8 @@ workflow ChromoSeq {
   String ReferenceIndex
   String ReferenceBED
 
-  String DragenReference
+  String DragenReference    = "/staging/runs/Chromoseq/refdata/dragen_hg38"
+  String DragenReferenceBED = "/staging/runs/Chromoseq/refdata/dragen_hg38/all_sequences.fa.bed.gz"
   String VEP
 
   String gcWig
@@ -101,7 +102,7 @@ workflow ChromoSeq {
 
   call dragen_demux {
     input: rundir=RunDir,
-    BatchFastqDir=BatchFastqDir,
+    Batch=Batch,
     sheet=SampleSheet,
     lane=Lane,
     jobGroup=JobGroup,
@@ -112,11 +113,12 @@ workflow ChromoSeq {
   scatter(i in range(length(Samples))){
     call dragen_align {
       input: BatchDir=BatchDir,
+      Batch=Batch,
       fastqfile=dragen_demux.fastqfile,
       sample=Samples[i],
       gender=Genders[i],
       Reference=DragenReference,
-      ReferenceBed=ReferenceBED,
+      ReferenceBed=DragenReferenceBED,
       CNAbinsize=CNAbinsize,
       DBSNP=DBSNP,
       DOCM=DOCM,
@@ -384,9 +386,13 @@ task prepare_bed {
 }
 
 task dragen_demux {
-  String BatchFastqDir
-  String rundir # we need the directory and the name. Might be able to just run a $(basename) in the command.
+  String Batch
+  String rootdir = "/staging/runs/Chromoseq/"
+  String LocalFastqDir = rootdir + "demux_fastq/" + Batch
+  String LocalSampleSheet = rootdir + "sample_sheet/" + Batch + '.csv'
+  String log = rootdir + "log/" + Batch + "_demux.log"
 
+  String rundir # we need the directory and the name. Might be able to just run a $(basename) in the command.
   String sheet
   String? lane
 
@@ -395,11 +401,16 @@ task dragen_demux {
   String jobGroup
 
   command {
+    /bin/cp ${sheet} ${LocalSampleSheet}
+
     if [ -n "${lane}" ]; then
-      /opt/edico/bin/dragen --bcl-conversion-only true --bcl-only-matched-reads true --strict-mode true --sample-sheet ${sheet} --bcl-input-directory ${rundir} --output-directory ${BatchFastqDir} --bcl-only-lane ${lane}
+      /opt/edico/bin/dragen --bcl-conversion-only true --bcl-only-matched-reads true --strict-mode true --sample-sheet ${LocalSampleSheet} --bcl-input-directory ${rundir} --output-directory ${LocalFastqDir} --bcl-only-lane ${lane} &> ${log}
     else
-      /opt/edico/bin/dragen --bcl-conversion-only true --bcl-only-matched-reads true --strict-mode true --sample-sheet ${sheet} --bcl-input-directory ${rundir} --output-directory ${BatchFastqDir}
+      /opt/edico/bin/dragen --bcl-conversion-only true --bcl-only-matched-reads true --strict-mode true --sample-sheet ${LocalSampleSheet} --bcl-input-directory ${rundir} --output-directory ${LocalFastqDir} &> ${log}
     fi
+
+    /bin/mv ${log} ./ && \
+    /bin/rm -f ${LocalSampleSheet}
   }
 
   runtime {
@@ -411,17 +422,22 @@ task dragen_demux {
   }
 
   output {
-    String fastqdir = "${BatchFastqDir}/"
-    File fastqfile = "${BatchFastqDir}/Reports/fastq_list.csv"
+    String fastqfile = "${LocalFastqDir}/Reports/fastq_list.csv"
   }
 }
 
 task dragen_align {
+  String Batch
   String BatchDir
+
+  String rootdir = "/staging/runs/Chromoseq/"
+  #String LocalFastqDir = rootdir + "demux_fastq/" + Batch
+  String LocalAlignDir = rootdir + "align/" + Batch
+
   String fastqfile
   String sample
   String gender
-  
+
   String Reference
   String ReferenceBed
   Int CNAbinsize
@@ -433,20 +449,28 @@ task dragen_align {
   String jobGroup
 
   String outdir = BatchDir + "/" + sample
+  String LocalSampleDir = LocalAlignDir + "/" + sample
+  String log = rootdir + "log/" + sample + "_align.log"
   
   command {
+    if [ ! -d "${LocalAlignDir}" ]; then
+      /bin/mkdir ${LocalAlignDir}
+    fi
+
     if [ ! -d "${BatchDir}" ]; then
       /bin/mkdir ${BatchDir}
     fi
 
-    /bin/mkdir ${outdir} && \
+    /bin/mkdir ${LocalSampleDir} && \
     /opt/edico/bin/dragen -r ${Reference} --sample-sex ${gender} \
     --tumor-fastq-list ${fastqfile} --tumor-fastq-list-sample-id ${sample} \
     --enable-map-align-output true --enable-bam-indexing true --enable-duplicate-marking true \
     --enable-variant-caller true --dbsnp ${DBSNP}  --vc-somatic-hotspots ${DOCM} --vc-systematic-noise ${NoiseFile} \
     --enable-cnv true --cnv-target-bed ${ReferenceBed} --cnv-interval-width ${CNAbinsize} \
     --enable-sv true --sv-exome true --sv-output-contigs true --sv-hyper-sensitivity true \
-    --output-format CRAM --output-directory ${outdir} --output-file-prefix ${sample}    
+    --output-format CRAM --output-directory ${LocalSampleDir} --output-file-prefix ${sample} &> ${log} && \
+    /bin/mv ${log} ./ && \
+    /bin/mv ${LocalSampleDir} ${BatchDir}
   }
 
   runtime {
