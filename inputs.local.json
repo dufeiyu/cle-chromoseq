@@ -1,14 +1,11 @@
 {
     "ChromoSeq.RunDir": "",
-    "ChromoSeq.FastqDir": "",
+    "ChromoSeq.FastqDir": "/scratch1/fs1/duncavagee/Chromoseq/demux_fastq",
     "ChromoSeq.SampleSheet": "",
     "ChromoSeq.Batch": "",
-    "ChromoSeq.SeqDir": "",
+    "ChromoSeq.SeqDir": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/output",
     "ChromoSeq.Samples": ["",""],
     "ChromoSeq.Genders": ["",""],
-    "ChromoSeq.DBSNP": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/dragen_align_inputs/dbsnp.vcf.gz",
-    "ChromoSeq.DOCM": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/dragen_align_inputs/docm.vcf.gz",
-    "ChromoSeq.NoiseFile": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/dragen_align_inputs/dragen_v1.0_systematic_noise.nextera_wgs.120920.bed.gz",
     "ChromoSeq.HaplotectBed": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/git/cle-chromoseq/accessory_files/myeloseq.haplotect_snppairs_hg38.041718.bed",
     "ChromoSeq.Translocations": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/git/cle-chromoseq/accessory_files/chromoseq_translocations.bedpe",
     "ChromoSeq.GenesBed": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/git/cle-chromoseq/accessory_files/chromoseq_genes.bed",
@@ -25,7 +22,6 @@
     "ChromoSeq.ReferenceDict": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/refdata/hg38/all_sequences.dict",
     "ChromoSeq.ReferenceIndex": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/refdata/hg38/all_sequences.fa.fai",
     "ChromoSeq.ReferenceBED": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/git/cle-chromoseq/accessory_files/all_sequences.fa.bed.gz",
-    "ChromoSeq.DragenReference": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/refdata/dragen_hg38",
     "ChromoSeq.VEP": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/VEP_cache/",
     "ChromoSeq.gcWig": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/git/cle-chromoseq/accessory_files/gc_hg38_500kb.wig",
     "ChromoSeq.mapWig": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/git/cle-chromoseq/accessory_files/map_hg38_500kb.wig",
@@ -48,7 +44,7 @@
     "ChromoSeq.JobGroup": "/cle/wdl/chromoseq",
     "ChromoSeq.DragenQueue": "duncavagee",
     "ChromoSeq.DragenDocker": "seqfu/centos7-dragen-3.7.5:latest",
-    "ChromoSeq.Queue": "pathology",
+    "ChromoSeq.Queue": "oncology",
     "ChromoSeq.chromoseq_docker": "registry.gsc.wustl.edu/mgi-cle/basespace_chromoseq:v13"
 }
 
