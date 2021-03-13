@@ -1,13 +1,13 @@
 workflow ChromoSeq {
 
-  # this is the path of the illumina run directory on storage1 after rsync from storage0
-  String RunDir
+  # This is the path of the illumina run directory on staging drive of dragen node after rsync from storage0
+  String? RunDir
 
-  # Fastq path
-  #String FastqDir
+  # Illumina-compatible fastq_list.csv, take fastq list as input instead of RunDir
+  String? FastqList
    
-  # Illlumina-compatible samplesheet for demuxing, prepared from launcher script using excel spreadsheet as input
-  String SampleSheet
+  # Illumina-compatible samplesheet for demuxing, prepared from launcher script using excel spreadsheet as input
+  String? SampleSheet
 
   # lane, if one is specified
   String? Lane
@@ -24,9 +24,8 @@ workflow ChromoSeq {
   # The root directory where all the batches are stored
   String SeqDir
   
-  # directory on storage1 where the output will be stored
+  # The batch output directory
   String BatchDir = SeqDir + '/' + Batch
-  #String BatchFastqDir = FastqDir + '/' + Batch
   
   String DBSNP     = "/staging/runs/Chromoseq/dragen_align_inputs/hg38/dbsnp.vcf.gz"
   String DOCM      = "/staging/runs/Chromoseq/dragen_align_inputs/hg38/docm.vcf.gz"
@@ -102,6 +101,7 @@ workflow ChromoSeq {
 
   call dragen_demux {
     input: rundir=RunDir,
+    FastqList=FastqList,
     Batch=Batch,
     sheet=SampleSheet,
     lane=Lane,
@@ -353,6 +353,12 @@ workflow ChromoSeq {
       docker=chromoseq_docker
     }
   }
+  call remove_rundir {
+    input: order_by=make_report.report,
+    rundir=RunDir,
+    queue=DragenQueue,
+    jobGroup=JobGroup
+  }
 }
 
 task prepare_bed {
@@ -389,11 +395,13 @@ task dragen_demux {
   String Batch
   String rootdir = "/staging/runs/Chromoseq/"
   String LocalFastqDir = rootdir + "demux_fastq/" + Batch
+  String LocalFastqList = rootdir + "sample_sheet/" + Batch + '_fastq_list.csv'
   String LocalSampleSheet = rootdir + "sample_sheet/" + Batch + '.csv'
   String log = rootdir + "log/" + Batch + "_demux.log"
 
-  String rundir # we need the directory and the name. Might be able to just run a $(basename) in the command.
-  String sheet
+  String? rundir
+  String? FastqList
+  String? sheet
   String? lane
 
   String queue
@@ -401,16 +409,21 @@ task dragen_demux {
   String jobGroup
 
   command {
-    /bin/cp ${sheet} ${LocalSampleSheet}
-
-    if [ -n "${lane}" ]; then
-      /opt/edico/bin/dragen --bcl-conversion-only true --bcl-only-matched-reads true --strict-mode true --sample-sheet ${LocalSampleSheet} --bcl-input-directory ${rundir} --output-directory ${LocalFastqDir} --bcl-only-lane ${lane} &> ${log}
+    if [ -n "${FastqList}" ]; then
+      /bin/cp ${FastqList} ${LocalFastqList}
     else
-      /opt/edico/bin/dragen --bcl-conversion-only true --bcl-only-matched-reads true --strict-mode true --sample-sheet ${LocalSampleSheet} --bcl-input-directory ${rundir} --output-directory ${LocalFastqDir} &> ${log}
-    fi
+      /bin/cp ${sheet} ${LocalSampleSheet}
 
-    /bin/mv ${log} ./ && \
-    /bin/rm -f ${LocalSampleSheet}
+      if [ -n "${lane}" ]; then
+        /opt/edico/bin/dragen --bcl-conversion-only true --bcl-only-matched-reads true --strict-mode true --sample-sheet ${LocalSampleSheet} --bcl-input-directory ${rundir} --output-directory ${LocalFastqDir} --bcl-only-lane ${lane} &> ${log}
+      else
+        /opt/edico/bin/dragen --bcl-conversion-only true --bcl-only-matched-reads true --strict-mode true --sample-sheet ${LocalSampleSheet} --bcl-input-directory ${rundir} --output-directory ${LocalFastqDir} &> ${log}
+      fi
+
+      /bin/mv ${log} ./ && \
+      /bin/rm -f ${LocalSampleSheet} && \
+      /bin/cp "${LocalFastqDir}/Reports/fastq_list.csv" ${LocalFastqList}
+    fi
   }
 
   runtime {
@@ -422,7 +435,7 @@ task dragen_demux {
   }
 
   output {
-    String fastqfile = "${LocalFastqDir}/Reports/fastq_list.csv"
+    String fastqfile = "${LocalFastqList}"
   }
 }
 
@@ -431,7 +444,6 @@ task dragen_align {
   String BatchDir
 
   String rootdir = "/staging/runs/Chromoseq/"
-  #String LocalFastqDir = rootdir + "demux_fastq/" + Batch
   String LocalAlignDir = rootdir + "align/" + Batch
 
   String fastqfile
@@ -973,36 +985,16 @@ task gather_files {
   }
 }
 
-task archive_fastqs {
-  String orderby
-  String fromdir
-  String todir
-  String queue
-  String jobGroup
-  
-  command {
-    /bin/mv -f -t ${todir}/ ${fromdir}/*
-  }
-  runtime {
-    docker_image: "ubuntu:xenial"
-    queue: queue
-    job_group: jobGroup
-  }
-  
-  output {
-    String done = stdout()
-  }
-}
-
 task remove_rundir {
-  String orderby
-  String rmdir
+  Array[String] order_by
+  String? rundir
   String queue
   String jobGroup
   
   command {
-    /bin/rm -Rf ${rmdir}
-    
+    if [ -n "${rundir}" ]; then 
+      /bin/rm -Rf ${rundir}
+    fi
   }
   runtime {
     docker_image: "ubuntu:xenial"
