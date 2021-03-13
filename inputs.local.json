@@ -1,6 +1,5 @@
 {
     "ChromoSeq.RunDir": "",
-    "ChromoSeq.FastqDir": "/scratch1/fs1/duncavagee/Chromoseq/demux_fastq",
     "ChromoSeq.SampleSheet": "",
     "ChromoSeq.Batch": "",
     "ChromoSeq.SeqDir": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/output",
