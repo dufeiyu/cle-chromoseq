@@ -325,7 +325,13 @@ COPY scripts/FilterManta.pl /usr/local/bin/FilterManta.pl
 COPY scripts/ichorToVCF.pl /usr/local/bin/ichorToVCF.pl
 COPY scripts/fixITDs.py /usr/local/bin/fixITDs.py
 COPY scripts/make_report.py /usr/local/bin/make_report.py
+COPY scripts/QC_info.pl /usr/local/bin/QC_info.pl
 
+COPY accessory_files/GRCh38.GCA_000001405.2_centromere_acen.txt /opt/files/GRCh38.GCA_000001405.2_centromere_acen.txt
+COPY accessory_files/gc_hg38_500kb.wig /opt/files/gc_hg38_500kb.wig
+COPY accessory_files/map_hg38_500kb.wig /opt/files/map_hg38_500kb.wig
+COPY accessory_files/myeloseq.haplotect_snppairs_hg38.041718.bed /opt/files/myeloseq.haplotect_snppairs_hg38.041718.bed
+COPY accessory_files/configMantaRegion.hg38.py.ini /opt/files/configMantaRegion.hg38.py.ini
 COPY accessory_files/configManta.hg38.py.ini /opt/files/configManta.hg38.py.ini
 COPY accessory_files/nextera_hg38_500kb_median_normAutosome_median.rds_median.033020.XY_median.rds /opt/files/nextera_hg38_500kb_median_normAutosome_median.rds_median.033020.XY_median.rds
 #COPY basespace_cromwell.config /opt/files/basespace_cromwell.config
