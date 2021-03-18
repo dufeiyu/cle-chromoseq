@@ -353,6 +353,13 @@ workflow ChromoSeq {
       docker=chromoseq_docker
     }
   }
+  call batch_qc {
+    input: order_by=gather_files.done,
+    BatchDir=BatchDir,
+    queue=Queue,
+    jobGroup=JobGroup
+  }
+
   call remove_rundir {
     input: order_by=make_report.report,
     rundir=RunDir,
@@ -973,6 +980,28 @@ task gather_files {
   
   command {
     /bin/mv -f -t ${OutputDir}/ ${sep=" " OutputFiles}
+  }
+  runtime {
+    docker_image: "ubuntu:xenial"
+    memory: "4 G"
+    queue: queue
+    job_group: jobGroup
+  }
+  output {
+    String done = stdout()
+  }
+}
+
+task batch_qc {
+  Array[String] order_by
+  String BatchDir
+  String queue
+  String jobGroup
+
+  String qcOut = BatchDir + "/QC_info.txt"
+
+  command {
+    /usr/bin/perl /usr/local/bin/QC_info.pl "${BatchDir}/*/*.chromoseq.txt" > ${qcOut}
   }
   runtime {
     docker_image: "ubuntu:xenial"
