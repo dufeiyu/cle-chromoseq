@@ -357,7 +357,8 @@ workflow ChromoSeq {
     input: order_by=gather_files.done,
     BatchDir=BatchDir,
     queue=Queue,
-    jobGroup=JobGroup
+    jobGroup=JobGroup,
+    docker=chromoseq_docker
   }
 
   call remove_rundir {
@@ -803,8 +804,8 @@ task annotate_variants {
   String refFasta
   String Vepcache
   String Cytobands
-  File CustomAnnotationVcf
-  File CustomAnnotationIndex
+  String CustomAnnotationVcf
+  String CustomAnnotationIndex
   String CustomAnnotationParameters
   String? FilterString
   String Name
@@ -997,6 +998,7 @@ task batch_qc {
   String BatchDir
   String queue
   String jobGroup
+  String docker
 
   String qcOut = BatchDir + "/QC_info.txt"
 
@@ -1004,7 +1006,7 @@ task batch_qc {
     /usr/bin/perl /usr/local/bin/QC_info.pl "${BatchDir}/*/*.chromoseq.txt" > ${qcOut}
   }
   runtime {
-    docker_image: "ubuntu:xenial"
+    docker_image: docker
     memory: "4 G"
     queue: queue
     job_group: jobGroup
