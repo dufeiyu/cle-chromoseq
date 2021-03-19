@@ -24,17 +24,29 @@ use File::Basename;
 
 ##THIS LAUNCHER SCRIPT NEEDS TO BE RUN ON DRAGEN NODE compute1-dragen-2 TO BE ABLE TO COPY RUNDIR
 ##TO LOCAL STAGING DRIVE
-my $staging_rundir = '/staging/runs/Chromoseq/rundir';
-die "Run on dragen node compute1-dragen-2 !" unless -d $staging_rundir;
-
 die "Provide rundir, excel sample spreadsheet, and batch name in order" unless @ARGV == 3;
-my ($rundir, $sample_sheet, $batch_name) = @ARGV;
 
-die "$rundir is not valid" unless -d $rundir;
+my ($rundir, $sample_sheet, $batch_name) = @ARGV;
 die "$sample_sheet is not valid" unless -s $sample_sheet;
 
-`/bin/cp -r $rundir $staging_rundir`;
-print "Copying to $staging_rundir is DONE";
+my $staging_rundir = '/staging/runs/Chromoseq/rundir';
+
+if ($rundir =~ /$staging_rundir/) {
+    print "$rundir is ready\n";
+}
+else {
+    die "$rundir is not valid" unless -d $rundir;
+    die "Run on dragen node compute1-dragen-2 !" unless -d $staging_rundir;
+
+    $rundir =~ s/\/*$//;
+    #my $rv = system "/bin/cp -r $rundir $staging_rundir";
+    my $rv = system "/usr/bin/rsync -avz $rundir $staging_rundir";
+    unless ($rv == 0) {
+        die "Failed to cp $rundir to $staging_rundir\n";
+    }
+    $rundir = File::Spec->join($staging_rundir, basename($rundir));
+    print "Copying to $staging_rundir is DONE";
+}
 
 my $dir = '/storage1/fs1/duncavagee/Active/SEQ/Chromoseq';
 my $git_dir = File::Spec->join($dir, 'git', 'cle-chromoseq');
@@ -49,7 +61,7 @@ my $docker = 'registry.gsc.wustl.edu/apipe-builder/genome_perl_environment:compu
 
 my $user_group = 'compute-duncavagee';
 
-my $out_dir = File::Spec->join($dir, 'output', $batch_name);
+my $out_dir = File::Spec->join($dir, 'batchdir', $batch_name);
 unless (-d $out_dir) {
     unless (mkdir $out_dir) {
         die "Failed to make directory $out_dir";
@@ -80,7 +92,7 @@ for my $row ($sheet->rows()) {
 $ss_fh->close;
 
 my $inputs = from_json(`cat $json_template`);
-$inputs->{'ChromoSeq.RunDir'} = File::Spec->join($staging_rundir, basename($rundir));
+$inputs->{'ChromoSeq.RunDir'} = $rundir;
 $inputs->{'ChromoSeq.SampleSheet'} = $dragen_ss;
 $inputs->{'ChromoSeq.Batch'} = $batch_name;
 
