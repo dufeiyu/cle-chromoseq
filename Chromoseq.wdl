@@ -18,6 +18,9 @@ workflow ChromoSeq {
   # sample names
   Array[String] Samples
 
+  # sample exceptions
+  Array[String] Exceptions
+
   # name of batch
   String Batch
 
@@ -318,6 +321,7 @@ workflow ChromoSeq {
       MinFracCov=MinCovFraction,
       MinGeneCov=MinGeneCov,
       MinRegionCov=MinRegionCov,
+      Exception=Exceptions[i],
       queue=Queue,
       jobGroup=JobGroup,
       docker=chromoseq_docker,
@@ -945,6 +949,7 @@ task make_report {
   String SVQC
   String GeneQC
   String Name
+  String Exception
   String queue
   String jobGroup
   String tmp
@@ -957,7 +962,7 @@ task make_report {
   
   command <<<
     cat ${MappingSummary} ${CoverageSummary} | grep SUMMARY | cut -d ',' -f 3,4 | sort -u > qc.txt && \
-    /opt/conda/bin/python /usr/local/bin/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} -g ${default=30 MinGeneCov} -s ${default=20 MinRegionCov} -f ${default=90 MinFracCov} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} > "${Name}.chromoseq.txt"
+    /opt/conda/bin/python /usr/local/bin/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} -g ${default=30 MinGeneCov} -s ${default=20 MinRegionCov} -f ${default=90 MinFracCov} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} "${Exception}" > "${Name}.chromoseq.txt"
   >>>
   
   runtime {

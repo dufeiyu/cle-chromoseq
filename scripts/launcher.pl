@@ -16,6 +16,7 @@ umask 002;
 
 use lib "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/perl5/lib/perl5";
 use Spreadsheet::Read;
+use File::Copy::Recursive qw(dircopy);
 use Data::Dumper;
 use JSON qw(from_json to_json);
 use IO::File;
@@ -30,25 +31,27 @@ my ($rundir, $sample_sheet, $batch_name) = @ARGV;
 die "$sample_sheet is not valid" unless -s $sample_sheet;
 
 my $staging_rundir = '/staging/runs/Chromoseq/rundir';
+my $dir = '/storage1/fs1/duncavagee/Active/SEQ/Chromoseq';
 
 if ($rundir =~ /$staging_rundir/) {
     print "$rundir is ready\n";
 }
 else {
-    die "$rundir is not valid" unless -d $rundir;
     die "Run on dragen node compute1-dragen-2 !" unless -d $staging_rundir;
-
+    #chdir($staging_rundir) or die "cannot change: $!\n";
+    die "$rundir is not valid" unless -d $rundir;
     $rundir =~ s/\/*$//;
-    #my $rv = system "/bin/cp -r $rundir $staging_rundir";
-    my $rv = system "/usr/bin/rsync -avz $rundir $staging_rundir";
-    unless ($rv == 0) {
-        die "Failed to cp $rundir to $staging_rundir\n";
-    }
-    $rundir = File::Spec->join($staging_rundir, basename($rundir));
+    dircopy($rundir, $staging_rundir) or die $!;
+    #my $rv = system "/bin/cp -a $rundir ./";
+    #my $rv = system "/usr/bin/rsync -avW $rundir $staging_rundir";
+    #unless ($rv == 0) {
+    #    die "Failed to cp $rundir to $staging_rundir\n";
+    #}
     print "Copying to $staging_rundir is DONE";
+    $rundir = File::Spec->join($staging_rundir, basename($rundir));
+    #chdir($dir) or die "cannot change: $!\n";
 }
 
-my $dir = '/storage1/fs1/duncavagee/Active/SEQ/Chromoseq';
 my $git_dir = File::Spec->join($dir, 'git', 'cle-chromoseq');
 
 my $conf = File::Spec->join($git_dir, 'application.conf');
@@ -56,7 +59,7 @@ my $wdl  = File::Spec->join($git_dir, 'Chromoseq.wdl');
 my $json_template = File::Spec->join($git_dir, 'inputs.local.json');
 
 my $group  = '/cle/wdl/chromoseq';
-my $queue  = 'oncology';
+my $queue  = 'pathology';
 my $docker = 'registry.gsc.wustl.edu/apipe-builder/genome_perl_environment:compute1-8';
 
 my $user_group = 'compute-duncavagee';
@@ -76,18 +79,24 @@ $ss_fh->print("Lane,Sample_ID,Sample_Name,Sample_Project,index,index2\n");
 my $data = Spreadsheet::Read->new($sample_sheet);
 my $sheet = $data->sheet(1);
 
-my %genders;
+my %info;
 
 for my $row ($sheet->rows()) {
     next if $row->[0] =~ /Run|Lane/i;
     unless ($row->[0] =~ /\d+/) {
         die "Lane number is expected, Check sample sheet spreadsheet";
     }
-    my ($lane, undef, $lib, $sex, $index1, $index2) = @$row;
+    my ($lane, undef, $lib, $sex, $index1, $index2, $exception) = @$row;
+    $exception = 'NONE' unless $exception;
+
     my $fix_index2 = rev_comp($index2);
     $ss_fh->print(join ',', $lane, $lib, $lib, '', $index1, $fix_index2);
     $ss_fh->print("\n");
-    $genders{$lib} = $sex;
+
+    $info{$lib} = {
+        sex => $sex,
+        exception => $exception,
+    };
 }
 $ss_fh->close;
 
@@ -98,14 +107,17 @@ $inputs->{'ChromoSeq.Batch'} = $batch_name;
 
 my @samples;
 my @genders;
+my @exceptions;
 
-for my $sample (sort keys %genders) {
+for my $sample (sort keys %info) {
     push @samples, $sample;
-    push @genders, $genders{$sample};
+    push @genders, $info{$sample}->{sex};
+    push @exceptions, $info{$sample}->{exception};
 }
 
 $inputs->{'ChromoSeq.Samples'} = \@samples;
 $inputs->{'ChromoSeq.Genders'} = \@genders;
+$inputs->{'ChromoSeq.Exceptions'} = \@exceptions;
 
 my $input_json = File::Spec->join($out_dir, 'inputs.json');
 my $json_fh = IO::File->new(">$input_json") or die "fail to write to $input_json";
