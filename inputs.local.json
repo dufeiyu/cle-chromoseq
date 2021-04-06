@@ -2,9 +2,10 @@
     "ChromoSeq.RunDir": "",
     "ChromoSeq.SampleSheet": "",
     "ChromoSeq.Batch": "",
-    "ChromoSeq.SeqDir": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/batchdir",
     "ChromoSeq.Samples": ["",""],
     "ChromoSeq.Genders": ["",""],
+    "ChromoSeq.Exceptions": ["",""],
+    "ChromoSeq.SeqDir": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/batchdir",
     "ChromoSeq.HaplotectBed": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/git/cle-chromoseq/accessory_files/myeloseq.haplotect_snppairs_hg38.041718.bed",
     "ChromoSeq.Translocations": "/opt/files/chromoseq_translocations.bedpe",
     "ChromoSeq.GenesBed": "/opt/files/chromoseq_genes.bed",
@@ -42,8 +43,8 @@
     "ChromoSeq.MinRegionCov": 20,
     "ChromoSeq.JobGroup": "/cle/wdl/chromoseq",
     "ChromoSeq.DragenQueue": "duncavagee",
-    "ChromoSeq.DragenDocker": "seqfu/centos7-dragen-3.7.5:latest",
-    "ChromoSeq.Queue": "oncology",
+    "ChromoSeq.DragenDocker": "registry.gsc.wustl.edu/mgi-cle/centos7-dragen:v3.7.5",
+    "ChromoSeq.Queue": "pathology",
     "ChromoSeq.chromoseq_docker": "registry.gsc.wustl.edu/mgi-cle/chromoseq:v1"
 }
 

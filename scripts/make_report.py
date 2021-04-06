@@ -104,6 +104,7 @@ parser.add_argument('mapsum',help='Map summary')
 parser.add_argument('genecov',help='Gene coverage')
 parser.add_argument('svcov',help='SV coverage')
 parser.add_argument('haplotect',help='Haplotect output')
+parser.add_argument('exception',help='Exception')
 parser.add_argument('-v',"--minvaf",help='Minimum validated VAF')
 parser.add_argument('-r',"--minreads",type=int,help='Minimum validated variant supporting reads')
 parser.add_argument('-g',"--mingenecov",type=int,help='Min gene coverage')
@@ -120,6 +121,7 @@ mapsum = args.mapsum
 genecov = args.genecov
 svcov = args.svcov
 haplotect = args.haplotect
+exception = args.exception
 
 if args.mingenecov:
     MinGeneCov = args.mingenecov
@@ -603,4 +605,7 @@ with open(svcov, 'r') as sv:
             
         line_count += 1
 
-print("\n\nThis laboratory developed test (LDT) was developed and its performance characteristics determined by the CLIA Licensed Environment laboratory at the McDonnell Genome Institute at Washington University (MGI-CLE, CLIA #26D2092546, CAP #9047655), Dr. David H. Spencer MD, PhD, FCAP, Medical Director. 4444 Forest Park Avenue, Rm 4111 St. Louis, Missouri 63108 (314) 286-1460 Fax: (314) 286-1810. The MGI-CLE laboratory is regulated under CLIA as certified to perform high-complexity testing. This test has not been cleared or approved by the FDA.\n")
+print("\n*** EXCEPTIONS ***\n")
+print(exception + "\n")
+
+print("\nThis laboratory developed test (LDT) was developed and its performance characteristics determined by the CLIA Licensed Environment laboratory at the McDonnell Genome Institute at Washington University (MGI-CLE, CLIA #26D2092546, CAP #9047655), Dr. David H. Spencer MD, PhD, FCAP, Medical Director. 4444 Forest Park Avenue, Rm 4111 St. Louis, Missouri 63108 (314) 286-1460 Fax: (314) 286-1810. The MGI-CLE laboratory is regulated under CLIA as certified to perform high-complexity testing. This test has not been cleared or approved by the FDA.")
