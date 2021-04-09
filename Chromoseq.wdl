@@ -327,7 +327,14 @@ workflow ChromoSeq {
       docker=chromoseq_docker,
       tmp=tmp
     }
-    
+
+    call make_report_json {
+      input: report=make_report.report,
+      Name=Samples[i],
+      queue=Queue,
+      jobGroup=JobGroup
+    }
+
     call gather_files {
       input: OutputFiles=[annotate_svs.vcf,
       annotate_svs.vcf_index,
@@ -350,7 +357,8 @@ workflow ChromoSeq {
       sv_qc.region_dist,
       run_haplotect.out_file,
       run_haplotect.sites_file,
-      make_report.report],
+      make_report.report,
+      make_report_json.json],
       OutputDir=BatchDir + "/" + Samples[i],
       queue=Queue,
       jobGroup=JobGroup,
@@ -974,6 +982,26 @@ task make_report {
   
   output {
     File report = "${Name}.chromoseq.txt"
+  }
+}
+
+task make_report_json {
+  String report
+  String Name
+  String queue
+  String jobGroup
+
+  command {
+    /usr/local/bin/chromoseq_to_json ${report} > "${Name}.chromoseq.txt.json"
+  }
+  runtime {
+    docker_image: "registry.gsc.wustl.edu/mgi-cle/chromoseq-json:v1"
+    memory: "4 G"
+    queue: queue
+    job_group: jobGroup
+  }
+  output {
+    File json = "${Name}.chromoseq.txt.json"
   }
 }
 
