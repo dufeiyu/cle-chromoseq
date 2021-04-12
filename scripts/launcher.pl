@@ -89,8 +89,15 @@ for my $row ($sheet->rows()) {
     my ($lane, undef, $lib, $sex, $index1, $index2, $exception) = @$row;
     $exception = 'NONE' unless $exception;
 
-    my $fix_index2 = rev_comp($index2);
-    $ss_fh->print(join ',', $lane, $lib, $lib, '', $index1, $fix_index2);
+    my ($clean_index1) = $index1 =~ /([ACGT]+)/;
+    my ($clean_index2) = $index2 =~ /([ACGT]+)/;
+
+    unless (length($clean_index1) == 10 and length($clean_index2) == 10) {
+        die "Provided $lib index1:$index1 and or index2:$index2 do not have 10 bases";
+    }
+
+    my $fix_index2 = rev_comp($clean_index2);
+    $ss_fh->print(join ',', $lane, $lib, $lib, '', $clean_index1, $fix_index2);
     $ss_fh->print("\n");
 
     $info{$lib} = {
