@@ -89,6 +89,10 @@ for my $row ($sheet->rows()) {
     my ($lane, undef, $lib, $sex, $index1, $index2, $exception) = @$row;
     $exception = 'NONE' unless $exception;
 
+    unless ($sex =~ /^(male|female)$/) {
+        die "$lib sex has to be either male or female, not:$sex";
+    }
+
     my ($clean_index1) = $index1 =~ /([ACGT]+)/;
     my ($clean_index2) = $index2 =~ /([ACGT]+)/;
 
