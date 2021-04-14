@@ -96,8 +96,8 @@ for my $row ($sheet->rows()) {
     my ($clean_index1) = $index1 =~ /([ACGT]+)/;
     my ($clean_index2) = $index2 =~ /([ACGT]+)/;
 
-    unless (length($clean_index1) == 10 and length($clean_index2) == 10) {
-        die "Provided $lib index1:$index1 and or index2:$index2 do not have 10 bases";
+    unless (length($clean_index1) =~ /^(8|10)$/ and length($clean_index2) =~ /^(8|10)$/) {
+        die "Provided $lib index1:$index1 and or index2:$index2 do not have 8 or 10 bases";
     }
 
     my $fix_index2 = rev_comp($clean_index2);
