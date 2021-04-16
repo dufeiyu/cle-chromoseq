@@ -14,7 +14,7 @@ use warnings;
 
 umask 002;
 
-use lib "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/perl5/lib/perl5";
+use lib "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/process/perl5/lib/perl5";
 use Spreadsheet::Read;
 use File::Copy::Recursive qw(dircopy);
 use Data::Dumper;
@@ -52,11 +52,11 @@ else {
     #chdir($dir) or die "cannot change: $!\n";
 }
 
-my $git_dir = File::Spec->join($dir, 'git', 'cle-chromoseq');
+my $git_dir = File::Spec->join($dir, 'process', 'git', 'cle-chromoseq');
 
 my $conf = File::Spec->join($git_dir, 'application.conf');
 my $wdl  = File::Spec->join($git_dir, 'Chromoseq.wdl');
-my $json_template = File::Spec->join($git_dir, 'inputs.local.json');
+my $json_template = File::Spec->join($git_dir, 'inputs.json');
 
 my $group  = '/cle/wdl/chromoseq';
 my $queue  = 'pathology';
