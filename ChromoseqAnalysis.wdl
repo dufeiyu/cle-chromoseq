@@ -288,19 +288,20 @@ workflow ChromoseqAnalysis {
     annotate_variants.annotated_vcf_index,
     run_ichor.params,
     run_ichor.seg,
-    run_ichor.genomewide_pdf,
     run_ichor.allgenomewide_pdf,
-    run_ichor.rdata,run_ichor.wig,
-    run_ichor.correct_pdf,
+    run_ichor.rdata,
+    run_ichor.wig,
     gene_qc.qc_out,
     gene_qc.region_dist,
     gene_qc.global_dist,
     sv_qc.qc_out,
     sv_qc.region_dist,
-    run_haplotect.out_file,
-    run_haplotect.sites_file,
-    make_report.report,
-    make_report_json.json],
+    run_haplotect.out_file],
+    OutputKeyFiles=[make_report.report,
+    make_report_json.json,
+    run_ichor.genomewide_pdf,
+    run_ichor.correct_pdf,
+    run_haplotect.sites_file],
     OutputDir=OutputDir,
     queue=Queue,
     jobGroup=JobGroup,
@@ -827,13 +828,18 @@ task make_report_json {
 
 task gather_files {
   Array[String] OutputFiles
+  Array[String] OutputKeyFiles
   String OutputDir
   String queue
   String jobGroup
   String docker
+
+  String ChromoseqOutdir = OutputDir + "/chromoseq/"
   
   command {
-    /bin/mv -f -t ${OutputDir}/ ${sep=" " OutputFiles}
+    /bin/mkdir ${ChromoseqOutdir} && \
+    /bin/mv -f -t ${OutputDir}/ ${sep=" " OutputKeyFiles} && \
+    /bin/mv -f -t ${ChromoseqOutdir} ${sep=" " OutputFiles}
   }
   runtime {
     docker_image: "ubuntu:xenial"

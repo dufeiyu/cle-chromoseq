@@ -261,6 +261,7 @@ task dragen_align {
   String jobGroup
 
   String outdir = BatchDir + "/" + sample
+  String dragen_outdir = outdir + "/dragen"
   String LocalSampleDir = LocalAlignDir + "/" + sample
   String log = rootdir + "log/" + sample + "_align.log"
   
@@ -274,6 +275,7 @@ task dragen_align {
     fi
 
     /bin/mkdir ${LocalSampleDir} && \
+    /bin/mkdir ${outdir} && \
     /opt/edico/bin/dragen -r ${Reference} --sample-sex ${gender} \
     --tumor-fastq-list ${fastqfile} --tumor-fastq-list-sample-id ${sample} \
     --enable-map-align-output true --enable-bam-indexing true --enable-duplicate-marking true \
@@ -282,7 +284,7 @@ task dragen_align {
     --enable-sv true --sv-exome true --sv-output-contigs true --sv-hyper-sensitivity true \
     --output-format CRAM --output-directory ${LocalSampleDir} --output-file-prefix ${sample} &> ${log} && \
     /bin/mv ${log} ./ && \
-    /bin/mv ${LocalSampleDir} ${BatchDir}
+    /bin/mv ${LocalSampleDir} ${dragen_outdir}
   }
 
   runtime {
@@ -294,11 +296,11 @@ task dragen_align {
   }
 
   output {
-    File cram = "${outdir}/${sample}_tumor.cram"
-    File index = "${outdir}/${sample}_tumor.cram.crai"
-    File counts = "${outdir}/${sample}.target.counts.gz"
-    File mapping_summary = "${outdir}/${sample}.mapping_metrics.csv"
-    File coverage_summary = "${outdir}/${sample}.wgs_coverage_metrics.csv"
+    File cram = "${dragen_outdir}/${sample}_tumor.cram"
+    File index = "${dragen_outdir}/${sample}_tumor.cram.crai"
+    File counts = "${dragen_outdir}/${sample}.target.counts.gz"
+    File mapping_summary = "${dragen_outdir}/${sample}.mapping_metrics.csv"
+    File coverage_summary = "${dragen_outdir}/${sample}.wgs_coverage_metrics.csv"
   }
 }
 
