@@ -56,6 +56,7 @@ my $git_dir = File::Spec->join($dir, 'process', 'git', 'cle-chromoseq');
 
 my $conf = File::Spec->join($git_dir, 'application.conf');
 my $wdl  = File::Spec->join($git_dir, 'Chromoseq.wdl');
+my $zip  = File::Spec->join($git_dir, 'imports.zip');
 my $json_template = File::Spec->join($git_dir, 'inputs.json');
 
 my $group  = '/cle/wdl/chromoseq';
@@ -87,6 +88,7 @@ for my $row ($sheet->rows()) {
         die "Lane number is expected, Check sample sheet spreadsheet";
     }
     my ($lane, undef, $lib, $sex, $index1, $index2, $exception) = @$row;
+    $lib =~ s/\s+//g;
     $exception = 'NONE' unless $exception;
 
     unless ($sex =~ /^(male|female)$/) {
@@ -139,7 +141,7 @@ $json_fh->close;
 my $out_log = File::Spec->join($out_dir, 'out.log');
 my $err_log = File::Spec->join($out_dir, 'err.log');
 
-my $cmd = "bsub -g $group -G $user_group -oo $out_log -eo $err_log -q $queue -a \"docker($docker)\" /usr/bin/java -Dconfig.file=$conf -jar /opt/cromwell.jar run -t wdl -i $input_json $wdl";
+my $cmd = "bsub -g $group -G $user_group -oo $out_log -eo $err_log -q $queue -a \"docker($docker)\" /usr/bin/java -Dconfig.file=$conf -jar /opt/cromwell.jar run -t wdl --imports $zip -i $input_json $wdl";
 
 system $cmd;
 
