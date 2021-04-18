@@ -837,6 +837,10 @@ task gather_files {
   String ChromoseqOutdir = OutputDir + "/chromoseq/"
   
   command {
+    if [ ! -d "${OutputDir}" ]; then
+      /bin/mkdir ${OutputDir}
+    fi
+
     /bin/mkdir ${ChromoseqOutdir} && \
     /bin/mv -f -t ${ChromoseqOutdir} ${sep=" " OutputFiles} && \
     /bin/mv -f -t ${OutputDir}/ ${sep=" " OutputKeyFiles}
