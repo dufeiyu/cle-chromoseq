@@ -838,8 +838,8 @@ task gather_files {
   
   command {
     /bin/mkdir ${ChromoseqOutdir} && \
-    /bin/mv -f -t ${OutputDir}/ ${sep=" " OutputKeyFiles} && \
-    /bin/mv -f -t ${ChromoseqOutdir} ${sep=" " OutputFiles}
+    /bin/mv -f -t ${ChromoseqOutdir} ${sep=" " OutputFiles} && \
+    /bin/mv -f -t ${OutputDir}/ ${sep=" " OutputKeyFiles}
   }
   runtime {
     docker_image: "ubuntu:xenial"
