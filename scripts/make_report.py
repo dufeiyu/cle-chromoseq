@@ -368,7 +368,7 @@ for v in passedvars.items():
             if abundance > 100:
                 abundance = ">95%"
             else:   
-                abdunance str(round(abundance,1))+"%"
+                abdunance = str(round(abundance,1))+"%"
                 
             infostring = 'CN=' + str(variant.INFO.get('CN')) + ';LOG2RATIO=' + str(round(variant.INFO.get('LOG2RATIO'),3))
             out = [vartype,chr1,str(pos1),chr2,str(pos2),str(svlen),bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(variant.ID),abundance,infostring]
