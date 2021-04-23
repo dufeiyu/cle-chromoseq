@@ -328,7 +328,7 @@ for v in passedvars.items():
         if vartype == 'DEL':
             csyntax = chr1 + ":g." + str(pos1) + "_" + str(pos2) + "del"
             if bands[0].find('p') > -1 and bands[-1].find('q') > -1: # if the CNA spans the centromere then the whole chromosome is lost/gained
-                psyntax = "-" + chr1.replace('chr','')
+                psyntax = "seq[GRCh38] -" + chr1.replace('chr','')
                 
             elif bands[0].find('p') > -1:
                 bands.reverse()
@@ -340,7 +340,7 @@ for v in passedvars.items():
         elif vartype == 'DUP':
             csyntax = chr1 + ":g." + str(pos1) + "_" + str(pos2) + "dup"
             if bands[0].find('p') > -1 and bands[-1].find('q') > -1:
-                psyntax = "+" + chr1.replace('chr','')
+                psyntax = "seq[GRCh38] +" + chr1.replace('chr','')
                 
             elif bands[0].find('p') > -1:
                 bands.reverse()
@@ -365,9 +365,13 @@ for v in passedvars.items():
         if variant.INFO.get('LOG2RATIO') is not None:
             
             abundance = variant.INFO.get('ABUNDANCE') #((2**variant.INFO.get('LOG2RATIO') - 1.0) / ((CN/2.0 - 1.0)))*100;
-
+            if abundance > 100:
+                abundance = ">95%"
+            else:   
+                abdunance = str(round(abundance,1))+"%"
+                
             infostring = 'CN=' + str(variant.INFO.get('CN')) + ';LOG2RATIO=' + str(round(variant.INFO.get('LOG2RATIO'),3))
-            out = [vartype,chr1,str(pos1),chr2,str(pos2),str(svlen),bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(variant.ID),str(round(abundance,1))+"%",infostring]
+            out = [vartype,chr1,str(pos1),chr2,str(pos2),str(svlen),bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(variant.ID),abundance,infostring]
                 
         elif variant.format("SR") is not None and variant.format("PR")[0] is not None:
             sr = variant.format("SR")[0]
