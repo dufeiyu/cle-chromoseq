@@ -7,6 +7,7 @@ import re
 from cyvcf2 import VCF
 import tempfile
 import csv
+import json
 import binascii
 import argparse
 
@@ -84,6 +85,22 @@ def convert_aa(codon):
 
     return codon
 
+def check_qc_reference_ranges(value, minimum, maximum, unit):
+    if minimum is not '' and maximum is not '':
+        range_str = '>' + minimum + unit + ' ' + '<' + maximum + unit
+        if value < int(minimum) or value > int(maximum):
+            range_str = range_str + ' (!)'
+    elif minimum is not '':
+        range_str = '>' + minimum + unit
+        if value < int(minimum):
+            range_str = range_str + ' (!)'
+    elif maximum is not '':
+        range_str = '<' + maximum + unit
+        if value > int(maximum):
+            range_str = range_str + ' (!)'
+    else:
+        sys.exit("Reference range must have minimum and or maximum")
+    return range_str
 
 #
 # Script
@@ -105,6 +122,8 @@ parser.add_argument('genecov',help='Gene coverage')
 parser.add_argument('svcov',help='SV coverage')
 parser.add_argument('haplotect',help='Haplotect output')
 parser.add_argument('exception',help='Exception')
+parser.add_argument('runinfostr',help='Illumina Run Information String')
+parser.add_argument('rangejsonfile',help='QCReferenceRanges.json')
 parser.add_argument('-v',"--minvaf",help='Minimum validated VAF')
 parser.add_argument('-r',"--minreads",type=int,help='Minimum validated variant supporting reads')
 parser.add_argument('-g',"--mingenecov",type=int,help='Min gene coverage')
@@ -122,6 +141,8 @@ genecov = args.genecov
 svcov = args.svcov
 haplotect = args.haplotect
 exception = args.exception
+run_info_str = args.runinfostr
+range_json_file = args.rangejsonfile
 
 if args.mingenecov:
     MinGeneCov = args.mingenecov
@@ -152,6 +173,7 @@ rgmapdata = {}
 mapdata['Average sequenced coverage over genome'] = ''
 mapdata['Average alignment coverage over genome'] = ''
 mapdata['Total input reads'] = ''
+mapdata['Total bases'] = ''
 mapdata['Mapped reads'] = ''
 mapdata['Number of duplicate marked reads'] = '';
 mapdata['Number of unique reads (excl. duplicate marked reads)'] = ''
@@ -237,11 +259,9 @@ for variant in genevcf:
         filter = 'LowReads'
 
     if filter != 'PASS':
-        vars['filteredgenelevel'].append([vartype,chr1,str(pos1),variant.REF,variant.ALT[0],gene,genes[gene]['Consequence'],csyntax,psyntax,str(genes[gene]['EXON']),filter,
-                                          str(variant.ID),str(round(abundance,1))+"%",str(variant.format("NV")[0][0]),str(variant.format("NR")[0][0]),pmaf])
+        vars['filteredgenelevel'].append([vartype,chr1,str(pos1),variant.REF,variant.ALT[0],gene,genes[gene]['Consequence'],csyntax,psyntax,str(genes[gene]['EXON']),filter,str(variant.ID),str(round(abundance,1))+"%",str(variant.format("NV")[0][0]),str(variant.format("NR")[0][0]),pmaf])
     else:
-        vars['genelevel'].append([vartype,chr1,str(pos1),variant.REF,variant.ALT[0],gene,genes[gene]['Consequence'],csyntax,psyntax,str(genes[gene]['EXON']),filter,
-                                  str(variant.ID),str(round(abundance,1))+"%",str(variant.format("NV")[0][0]),str(variant.format("NR")[0][0]),pmaf])
+        vars['genelevel'].append([vartype,chr1,str(pos1),variant.REF,variant.ALT[0],gene,genes[gene]['Consequence'],csyntax,psyntax,str(genes[gene]['EXON']),filter,str(variant.ID),str(round(abundance,1))+"%",str(variant.format("NV")[0][0]),str(variant.format("NR")[0][0]),pmaf])
     
     
 # done getting gene variants
@@ -365,13 +385,13 @@ for v in passedvars.items():
         if variant.INFO.get('LOG2RATIO') is not None:
             
             abundance = variant.INFO.get('ABUNDANCE') #((2**variant.INFO.get('LOG2RATIO') - 1.0) / ((CN/2.0 - 1.0)))*100;
+            abundance_str = str(round(abundance,1))+"%"
+
             if abundance > 100:
-                abundance = ">95%"
-            else:   
-                abdunance = str(round(abundance,1))+"%"
+                abundance_str = ">95%"
                 
             infostring = 'CN=' + str(variant.INFO.get('CN')) + ';LOG2RATIO=' + str(round(variant.INFO.get('LOG2RATIO'),3))
-            out = [vartype,chr1,str(pos1),chr2,str(pos2),str(svlen),bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(variant.ID),abundance,infostring]
+            out = [vartype,chr1,str(pos1),chr2,str(pos2),str(svlen),bandstr,knowngenestring,csyntax,psyntax,genestring,filter,str(variant.ID),abundance_str,infostring]
                 
         elif variant.format("SR") is not None and variant.format("PR")[0] is not None:
             sr = variant.format("SR")[0]
@@ -538,17 +558,83 @@ if len(vars['novelsv']) > 0:
 else:
     print("\t"+"NONE DETECTED\n")
 
-## now print QC stuff
+
+## Case Information
+mrn, accession, specimen = Name, 'NA', 'NA'
+pattern = r"[A-Z]{4}\-(\d+)\-([A-Z]\d+\-\d+)\-([A-Z0-9]+)\-lib"
+result = re.search(pattern, Name)
+
+if result:
+    mrn, accession, specimen = result.group(1), result.group(2), result.group(3)
+
+if specimen == 'BM':
+    specimen = 'Bone Marrow'
+elif specimen == 'PB':
+    specimen = 'Peripheral Blood'
+
+run_info = run_info_str.split(',')
+instrument = ' '.join((run_info[1], 'Side', run_info[2]))
+spec = 'x'.join(run_info[-4:])
+flowcell = ' '.join((run_info[3], run_info[4], spec))
+
+print("*** CHROMOSEQ CASE INFORMATION ***\n")
+print("MRN:\t" + mrn)
+print("ACCESSION:\t" + accession)
+print("SPECIMEN TYPE:\t" + specimen)
+print("RUNID:\t" + run_info[0])
+print("INSTRUMENT:\t" + instrument)
+print("FLOWCELL:\t" + flowcell + "\n")
+
+## QC
+with open(range_json_file, 'r') as json_file:
+    json_values = json.load(json_file)
 
 print("*** CHROMOSEQ QC ***\n")
 
-print("AVERAGE COVERAGE:\t",mapdata['Average alignment coverage over genome'])
-print("TOTAL READS:\t",mapdata['Total input reads'])
-print("MAPPED READS:\t",mapdata['Mapped reads']," ",str(round(int(mapdata['Mapped reads'])/int(mapdata['Total input reads'])*100,1))+"%")
-print("DUPLICATES:\t",mapdata['Number of duplicate marked reads']," ",str(round(int(mapdata['Number of duplicate marked reads'])/int(mapdata['Total input reads'])*100,1))+"%")
-print("UNIQUE READS:\t",mapdata['Number of unique reads (excl. duplicate marked reads)']," ",str(round(int(mapdata['Number of unique reads (excl. duplicate marked reads)'])/int(mapdata['Total input reads'])*100,1))+"%")
-print("PROPERLY PAIRED READS:\t"+str(mapdata['Properly paired reads'])+" ",str(round(int(mapdata['Properly paired reads'])/int(mapdata['Total input reads'])*100,1))+"%")
-print("MEAN INSERT SIZE:\t"+mapdata['Insert length: mean']+"\n")
+AC = mapdata['Average alignment coverage over genome']
+AC_ranges = json_values["AVERAGE COVERAGE"].split(',')
+AC_check_str = check_qc_reference_ranges(float(AC), AC_ranges[0], AC_ranges[1], 'x') 
+print("\t".join(("AVERAGE COVERAGE:", AC, AC_check_str)))
+
+TR = mapdata['Total input reads']
+
+TGR = str(round(int(TR)/1000000000, 2))
+TGR_ranges = json_values["TOTAL GIGAREADS"].split(',')
+TGR_check_str = check_qc_reference_ranges(float(TGR), TGR_ranges[0], TGR_ranges[1], 'B')
+print("\t".join(("TOTAL READS:", TGR+"B", TGR_check_str)))
+
+TB = mapdata['Total bases']
+TGB = str(round(int(TB)/1000000000))
+TGB_ranges = json_values["TOTAL GIGABASES"].split(',')
+TGB_check_str = check_qc_reference_ranges(int(TGB), TGB_ranges[0], TGB_ranges[1], '')
+print("\t".join(("TOTAL GIGABASES:", TGB, TGB_check_str)))
+
+MR = str(round(int(mapdata['Mapped reads'])/int(TR)*100,1))
+MR_ranges = json_values["MAPPED READS"].split(',')
+MR_check_str = check_qc_reference_ranges(float(MR), MR_ranges[0], MR_ranges[1], '%')
+print("\t".join(("MAPPED READS:", MR+"%", MR_check_str)))
+
+DUP = str(round(int(mapdata['Number of duplicate marked reads'])/int(TR)*100,1))
+DUP_ranges = json_values["DUPLICATES"].split(',')
+DUP_check_str = check_qc_reference_ranges(float(DUP), DUP_ranges[0], DUP_ranges[1], '%')
+print("\t".join(("DUPLICATES:", DUP+"%", DUP_check_str)))
+
+UR = str(round(int(mapdata['Number of unique reads (excl. duplicate marked reads)'])/int(TR)*100,1))
+UR_ranges = json_values["UNIQUE READS"].split(',')
+UR_check_str = check_qc_reference_ranges(float(UR), UR_ranges[0], UR_ranges[1], '%')
+print("\t".join(("UNIQUE READS:", UR+"%", UR_check_str)))
+
+PPR = str(round(int(mapdata['Properly paired reads'])/int(TR)*100,1))
+PPR_ranges = json_values["PROPERLY PAIRED READS"].split(',')
+PPR_check_str = check_qc_reference_ranges(float(PPR), PPR_ranges[0], PPR_ranges[1], '%')
+print("\t".join(("PROPERLY PAIRED READS:", PPR+"%", PPR_check_str)))
+
+MIS = mapdata['Insert length: mean']
+MIS_ranges = json_values["MEAN INSERT SIZE"].split(',')
+MIS_check_str = check_qc_reference_ranges(round(float(MIS)), MIS_ranges[0], MIS_ranges[1], '')
+print("\t".join(("MEAN INSERT SIZE:", str(round(float(MIS))), MIS_check_str)))
+
+print("EXCEPTIONS:\t" + exception + "\n")
 
 print("*** Haplotect Contamination Estimate ***\n")
 with open(haplotect, 'r') as hap:
@@ -609,7 +695,5 @@ with open(svcov, 'r') as sv:
             
         line_count += 1
 
-print("\n*** EXCEPTIONS ***\n")
-print(exception + "\n")
-
-print("\nThis laboratory developed test (LDT) was developed and its performance characteristics determined by the CLIA Licensed Environment laboratory at the McDonnell Genome Institute at Washington University (MGI-CLE, CLIA #26D2092546, CAP #9047655), Dr. David H. Spencer MD, PhD, FCAP, Medical Director. 4444 Forest Park Avenue, Rm 4111 St. Louis, Missouri 63108 (314) 286-1460 Fax: (314) 286-1810. The MGI-CLE laboratory is regulated under CLIA as certified to perform high-complexity testing. This test has not been cleared or approved by the FDA.")
+print("\n*** ChromoSeq Assay Version " + str(json_values["ASSAY VERSION"]) + " ***\n")
+print("\n" + json_values["DISCLAIMER"])
