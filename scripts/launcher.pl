@@ -47,9 +47,14 @@ else {
     #unless ($rv == 0) {
     #    die "Failed to cp $rundir to $staging_rundir\n";
     #}
-    print "Copying to $staging_rundir is DONE";
+    print "Copying to $staging_rundir is DONE\n";
     $rundir = File::Spec->join($staging_rundir, basename($rundir));
     #chdir($dir) or die "cannot change: $!\n";
+}
+
+my $run_xml = File::Spec->join($rundir, 'RunParameters.xml');
+unless (-s $run_xml) {
+    die "RunParameters.xml $run_xml is not valid";
 }
 
 my $git_dir = File::Spec->join($dir, 'process', 'git', 'cle-chromoseq');
@@ -72,6 +77,7 @@ unless (-d $out_dir) {
     }
 }
 
+## DRAGEN sample sheet
 my $dragen_ss  = File::Spec->join($out_dir, 'sample_sheet.csv'); 
 my $ss_fh = IO::File->new(">$dragen_ss") or die "fail to write to $dragen_ss";
 $ss_fh->print("[Data]\n");
@@ -113,7 +119,45 @@ for my $row ($sheet->rows()) {
 }
 $ss_fh->close;
 
+## Input JSON
+my ($runid, $R1cycle, $R2cycle, $index1cycle, $index2cycle, $fcmode, $wftype, $instr, $side);
+my $xml_fh = IO::File->new($run_xml) or die "Fail to open $run_xml";
+
+while (my $line = $xml_fh->getline) {
+    if ($line =~ /<RunId>(\S+)<\/RunId>/) {
+        $runid = $1;
+    }
+    elsif ($line =~ /<Read1NumberOfCycles>(\d+)<\/Read1NumberOfCycles>/) {
+        $R1cycle = $1;
+    }
+    elsif ($line =~ /<Read2NumberOfCycles>(\d+)<\/Read2NumberOfCycles>/) {
+        $R2cycle = $1;
+    }
+    elsif ($line =~ /<IndexRead1NumberOfCycles>(\d+)<\/IndexRead1NumberOfCycles>/) {
+        $index1cycle = $1;
+    }
+    elsif ($line =~ /<IndexRead2NumberOfCycles>(\d+)<\/IndexRead2NumberOfCycles>/) {
+        $index2cycle = $1;
+    }
+    elsif ($line =~ /<FlowCellMode>(\S+)<\/FlowCellMode>/) {
+        $fcmode = $1;
+    }
+    elsif ($line =~ /<WorkflowType>(\S+)<\/WorkflowType>/) {
+        $wftype = $1;
+    }
+    elsif ($line =~ /<InstrumentName>(\S+)<\/InstrumentName>/) {
+        $instr = $1;
+    }
+    elsif ($line =~ /<Side>(\S+)<\/Side>/) {
+        $side = $1;
+    }
+}
+$xml_fh->close;
+
+my $run_info_str = join ',', $runid, $instr, $side, $fcmode, $wftype, $R1cycle, $index1cycle, $index2cycle, $R2cycle; 
+
 my $inputs = from_json(`cat $json_template`);
+$inputs->{'ChromoSeq.RunInfoString'} = $run_info_str;
 $inputs->{'ChromoSeq.RunDir'} = $rundir;
 $inputs->{'ChromoSeq.SampleSheet'} = $dragen_ss;
 $inputs->{'ChromoSeq.Batch'} = $batch_name;
@@ -135,7 +179,7 @@ $inputs->{'ChromoSeq.Exceptions'} = \@exceptions;
 my $input_json = File::Spec->join($out_dir, 'inputs.json');
 my $json_fh = IO::File->new(">$input_json") or die "fail to write to $input_json";
 
-$json_fh->print(to_json($inputs));
+$json_fh->print(to_json($inputs, {pretty => 1}));
 $json_fh->close;
 
 my $out_log = File::Spec->join($out_dir, 'out.log');
@@ -144,7 +188,7 @@ my $err_log = File::Spec->join($out_dir, 'err.log');
 my $cmd = "bsub -g $group -G $user_group -oo $out_log -eo $err_log -q $queue -a \"docker($docker)\" /usr/bin/java -Dconfig.file=$conf -jar /opt/cromwell.jar run -t wdl --imports $zip -i $input_json $wdl";
 
 system $cmd;
-
+#print $cmd."\n";
 
 sub rev_comp {
     my $index = shift;

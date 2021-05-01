@@ -69,6 +69,8 @@ workflow ChromoSeq {
   String genomeStyle
   String genome
 
+  String RefRangeJSON
+  String RunInfoString
   String tmp
   
   Float minVarFreq
@@ -97,6 +99,7 @@ workflow ChromoSeq {
   call dragen_demux {
     input: rundir=RunDir,
     FastqList=FastqList,
+    BatchDir=BatchDir,
     Batch=Batch,
     sheet=SampleSheet,
     lane=Lane,
@@ -167,6 +170,8 @@ workflow ChromoSeq {
       MinCovFraction=MinCovFraction,
       MinGeneCov=MinGeneCov,
       MinRegionCov=MinRegionCov,
+      RefRangeJSON=RefRangeJSON,
+      RunInfoString=RunInfoString,
       tmp=tmp,
       JobGroup=JobGroup,
       Queue=Queue,
@@ -193,8 +198,12 @@ workflow ChromoSeq {
 
 task dragen_demux {
   String Batch
+  String BatchDir
+  String DemuxReportDir = BatchDir + "/dragen_demux_reports"
+
   String rootdir = "/staging/runs/Chromoseq/"
   String LocalFastqDir = rootdir + "demux_fastq/" + Batch
+  String LocalDemuxReportDir = LocalFastqDir + "/Reports"
   String LocalFastqList = rootdir + "sample_sheet/" + Batch + '_fastq_list.csv'
   String LocalSampleSheet = rootdir + "sample_sheet/" + Batch + '.csv'
   String log = rootdir + "log/" + Batch + "_demux.log"
@@ -222,6 +231,7 @@ task dragen_demux {
 
       /bin/mv ${log} ./ && \
       /bin/rm -f ${LocalSampleSheet} && \
+      /bin/cp -r ${LocalDemuxReportDir} ${DemuxReportDir} && \
       /bin/cp "${LocalFastqDir}/Reports/fastq_list.csv" ${LocalFastqList}
     fi
   }
