@@ -46,14 +46,14 @@ for my $arg (@ARGV) {
 #$out_fh->print(join "\t", "SAMPLE", "AVERAGE_COVERAGE", "TOTAL_READS", "MAPPED_READS", "MAPPED%", "DUPLICATES", "DUPLICATES%", "UNIQUE_READS", "UNIQUE%", "PROPERLY_PAIRED_READS", "PAIRED%", "MEAN_INSERT_SIZE", "CNAs", "RecurrentSVs", "GeneMutations", "OtherSVs");
 #$out_fh->print("\n");
 
-print join "\t", "SAMPLE", "AVERAGE_COVERAGE", "TOTAL_READS", "MAPPED_READS", "MAPPED%", "DUPLICATES", "DUPLICATES%", "UNIQUE_READS", "UNIQUE%", "PROPERLY_PAIRED_READS", "PAIRED%", "MEAN_INSERT_SIZE", "CNAs", "RecurrentSVs", "GeneMutations", "OtherSVs";
+print join "\t", "SAMPLE", "AVERAGE_COVERAGE", "TOTAL_READS", "TOTAL_GIGABASES", "MAPPED_READS", "DUPLICATES", "UNIQUE_READS", "PROPERLY_PAIRED_READS", "MEAN_INSERT_SIZE", "CNAs", "RecurrentSVs", "GeneMutations", "OtherSVs";
 print "\n";
 
 for my $file (@files) {
     my $base = basename $file;
     my ($name) = $base =~ /^(\S+)\.chromoseq\.txt/;
     
-    my ($av, $tr, $mr, $mr_pct, $dup, $dup_pct, $ur, $ur_pct, $ppr, $ppr_pct, $mis);
+    my ($av, $tr, $tg, $mr, $dup, $ur, $ppr, $mis);
     my ($cna_flag, $rt_flag, $gm_flag, $os_flag);
     my (@cna, @rt, @gm, @os);
 
@@ -70,37 +70,38 @@ for my $file (@files) {
             $gm_flag = 1;
             $rt_flag = 0;
         }
-        elsif ($line =~ /\*\*\* OTHER STRUCTURAL/) {
-            $os_flag = 1;
+        elsif ($line =~ /\*\*\* FILTERED GENE MUTATIONS/) {
             $gm_flag = 0;
         }
-        elsif ($line =~ /\*\*\* CHROMOSEQ QC/) {
+        elsif ($line =~ /\*\*\* OTHER STRUCTURAL/) {
+            $os_flag = 1;
+        }
+        elsif ($line =~ /\*\*\* CHROMOSEQ CASE INFORMATION/) {
             $os_flag = 0;
         }
-        elsif ($line =~ /AVERAGE COVERAGE:\s*(.*)\n/) {
-            ($av) = adjust($1);
+        elsif ($line =~ /AVERAGE COVERAGE:\t(\S+)\t/) {
+            $av = $1;
         }
-        elsif ($line =~ /TOTAL READS:\s*(.*)\n/) {
-            ($tr) = adjust($1);
+        elsif ($line =~ /TOTAL READS:\t(\S+)\t/) {
+            $tr = $1;
         }
-        elsif ($line =~ /MAPPED READS:\s*(.*)\n/) {
-            ($mr, $mr_pct) = adjust($1);
-            $mr_pct = 'NA' unless $mr_pct;
+        elsif ($line =~ /TOTAL GIGABASES:\t(\S+)\t/) {
+            $tg = $1;
         }
-        elsif ($line =~ /DUPLICATES:\s*(.*)\n/) {
-            ($dup, $dup_pct) = adjust($1);
-            $dup_pct = 'NA' unless $dup_pct;
+        elsif ($line =~ /MAPPED READS:\t(\S+)\t/) {
+            $mr = $1;
         }
-        elsif ($line =~ /UNIQUE READS:\s*(.*)\n/) {
-            ($ur, $ur_pct) = adjust($1);
-            $ur_pct = 'NA' unless $ur_pct;
+        elsif ($line =~ /DUPLICATES:\t(\S+)\t/) {
+            $dup = $1;
         }
-        elsif ($line =~ /PROPERLY PAIRED READS:\s*(.*)\n/) {
-            ($ppr, $ppr_pct) = adjust($1);
-            $ppr_pct = 'NA' unless $ppr_pct;
+        elsif ($line =~ /UNIQUE READS:\t(\S+)\t/) {
+            $ur = $1;
         }
-        elsif ($line =~ /MEAN INSERT SIZE:\s*(.*)\n/) {
-            ($mis) = adjust($1);
+        elsif ($line =~ /PROPERLY PAIRED READS:\t(\S+)\t/) {
+            $ppr = $1;
+        }
+        elsif ($line =~ /MEAN INSERT SIZE:\t(\S+)\t/) {
+            $mis = $1;
         }
 
         if ($cna_flag) {
@@ -134,7 +135,7 @@ for my $file (@files) {
 
     #$out_fh->print(join "\t", $name, $av, $tr, $mr, $mr_pct, $dup, $dup_pct, $ur, $ur_pct, $ppr, $ppr_pct, $mis, $cna_str, $rt_str, $gm_str, $os_str);
     #$out_fh->print("\n");
-    print join "\t", $name, $av, $tr, $mr, $mr_pct, $dup, $dup_pct, $ur, $ur_pct, $ppr, $ppr_pct, $mis, $cna_str, $rt_str, $gm_str, $os_str;
+    print join "\t", $name, $av, $tr, $tg, $mr, $dup, $ur, $ppr, $mis, $cna_str, $rt_str, $gm_str, $os_str;
     print "\n";
 }
 

@@ -69,6 +69,8 @@ workflow ChromoSeq {
   String genomeStyle
   String genome
 
+  String RefRangeJSON
+  String RunInfoString
   String tmp
   
   Float minVarFreq
@@ -168,6 +170,8 @@ workflow ChromoSeq {
       MinCovFraction=MinCovFraction,
       MinGeneCov=MinGeneCov,
       MinRegionCov=MinRegionCov,
+      RefRangeJSON=RefRangeJSON,
+      RunInfoString=RunInfoString,
       tmp=tmp,
       JobGroup=JobGroup,
       Queue=Queue,
