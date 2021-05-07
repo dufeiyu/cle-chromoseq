@@ -121,6 +121,7 @@ parser.add_argument('mapsum',help='Map summary')
 parser.add_argument('genecov',help='Gene coverage')
 parser.add_argument('svcov',help='SV coverage')
 parser.add_argument('haplotect',help='Haplotect output')
+parser.add_argument('gender',help='Sample gender')
 parser.add_argument('exception',help='Exception')
 parser.add_argument('runinfostr',help='Illumina Run Information String')
 parser.add_argument('rangejsonfile',help='QCReferenceRanges.json')
@@ -140,6 +141,7 @@ mapsum = args.mapsum
 genecov = args.genecov
 svcov = args.svcov
 haplotect = args.haplotect
+gender = args.gender
 exception = args.exception
 run_info_str = args.runinfostr
 range_json_file = args.rangejsonfile
@@ -581,6 +583,7 @@ print("*** CHROMOSEQ CASE INFORMATION ***\n")
 print("MRN:\t" + mrn)
 print("ACCESSION:\t" + accession)
 print("SPECIMEN TYPE:\t" + specimen)
+print("SEX:\t" + gender)
 print("RUNID:\t" + run_info[0])
 print("INSTRUMENT:\t" + instrument)
 print("FLOWCELL:\t" + flowcell + "\n")
@@ -634,7 +637,7 @@ MIS_ranges = json_values["MEAN INSERT SIZE"].split(',')
 MIS_check_str = check_qc_reference_ranges(round(float(MIS)), MIS_ranges[0], MIS_ranges[1], '')
 print("\t".join(("MEAN INSERT SIZE:", str(round(float(MIS))), MIS_check_str)))
 
-print("EXCEPTIONS:\t" + exception + "\n")
+print("EXCEPTIONS:\t" + exception + "\t\n")
 
 print("*** Haplotect Contamination Estimate ***\n")
 with open(haplotect, 'r') as hap:
