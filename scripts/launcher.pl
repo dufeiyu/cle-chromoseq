@@ -31,9 +31,10 @@ my ($rundir, $sample_sheet, $batch_name) = @ARGV;
 die "$sample_sheet is not valid" unless -s $sample_sheet;
 
 my $staging_rundir = '/staging/runs/Chromoseq/rundir';
+my $scratch_rundir = '/scratch1/fs1/duncavagee/Chromoseq/rundir';
 my $dir = '/storage1/fs1/duncavagee/Active/SEQ/Chromoseq';
 
-if ($rundir =~ /$staging_rundir/) {
+if ($rundir =~ /$staging_rundir|$scratch_rundir/) {
     print "$rundir is ready\n";
 }
 else {
