@@ -95,8 +95,11 @@ for my $row ($sheet->rows()) {
         die "Lane number is expected, Check sample sheet spreadsheet";
     }
     my ($lane, undef, $lib, $sex, $index1, $index2, $exception) = @$row;
+
     $lib =~ s/\s+//g;
-    $exception = 'NONE' unless $exception;
+    unless ($lib =~ /^[A-Z]{4}\-\d+\-[A-Z]\d+\-\d+\-[A-Z0-9]+\-lib/) {
+        die "Library name: $lib must contain MRN, accession id and specimen type";
+    }
 
     unless ($sex =~ /^(male|female)$/) {
         die "$lib sex has to be either male or female, not:$sex";
@@ -110,6 +113,8 @@ for my $row ($sheet->rows()) {
     }
 
     my $fix_index2 = rev_comp($clean_index2);
+    $exception = 'NONE' unless $exception;
+
     $ss_fh->print(join ',', $lane, $lib, $lib, '', $clean_index1, $fix_index2);
     $ss_fh->print("\n");
 
