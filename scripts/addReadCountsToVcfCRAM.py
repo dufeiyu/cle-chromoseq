@@ -10,6 +10,7 @@ MinReads = 3
 MinVAF = 0.02
 PrintAllVariants = False
 maxNM = 4
+minmapqual = 1
 
 parser = argparse.ArgumentParser(description='Add amplicon data to VCF file with variants identified from HaloplexHS data.')
 parser.add_argument('vcffile',help='VCF file')
@@ -91,7 +92,7 @@ for rec in vcffile.fetch(reopen=True):
                 for read in pileup.pileups:
 
                     # skip positions with indels
-                    if not read.is_del and not read.is_refskip:
+                    if not read.is_del and not read.is_refskip and not read.alignment.is_duplicate and read.alignment.mapping_quality >= minmapqual:
 
                         # count alleles by amplicon
                         if read.alignment.query_sequence[read.query_position] == rec.ref:
@@ -137,6 +138,8 @@ for rec in vcffile.fetch(reopen=True):
         for pileup in pu:
             if pileup.pos == rec.pos-1:
                 for read in pileup.pileups:
+                    if read.alignment.is_duplicate or read.alignment.mapping_quality < minmapqual:
+                        continue
 
                     # if the read has fewer mismatches (NM tag) than the indel length and has no softclipped bases
                     # then assign to reference allele
@@ -185,7 +188,7 @@ for rec in vcffile.fetch(reopen=True):
 
         # now get reads that map to the vicinity but are softclipped and map those.
         for r in samfile.fetch(rec.contig, rec.pos-1-5, rec.pos+5, multiple_iterators = False):
-            if r.query_name in reads or r.reference_end is None or (r.has_tag("NM") and r.get_tag("NM") > maxNM):
+            if r.query_name in reads or r.reference_end is None or (r.has_tag("NM") and r.get_tag("NM") > maxNM) or r.is_duplicate or r.mapping_quality < minmapqual:
                 continue
             
             readstart = r.reference_start
