@@ -47,6 +47,6 @@
     "ChromoSeq.DragenQueue": "duncavagee",
     "ChromoSeq.DragenDocker": "registry.gsc.wustl.edu/mgi-cle/centos7-dragen:v3.7.5",
     "ChromoSeq.Queue": "pathology",
-    "ChromoSeq.chromoseq_docker": "registry.gsc.wustl.edu/mgi-cle/chromoseq:v1"
+    "ChromoSeq.chromoseq_docker": "registry.gsc.wustl.edu/mgi-cle/chromoseq:v1.1"
 }
 
