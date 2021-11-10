@@ -96,6 +96,8 @@ workflow ChromoSeq {
   String chromoseq_docker
   String DragenDocker
 
+  String DemuxFastqDir = "/scratch1/fs1/gtac-mgi/CLE/chromoseq/demux_fastq"
+
   call dragen_demux {
     input: rundir=RunDir,
     FastqList=FastqList,
@@ -186,6 +188,14 @@ workflow ChromoSeq {
     queue=Queue,
     jobGroup=JobGroup,
     docker=chromoseq_docker
+  }
+
+  call move_demux_fastq {
+    input: order_by=ChromoseqAnalysis.all_done,
+    Batch=Batch,
+    DemuxFastqDir=DemuxFastqDir,
+    queue=DragenQueue,
+    jobGroup=JobGroup
   }
 
   call remove_rundir {
@@ -288,7 +298,7 @@ task dragen_align {
     /bin/mkdir ${outdir} && \
     /opt/edico/bin/dragen -r ${Reference} --sample-sex ${gender} \
     --tumor-fastq-list ${fastqfile} --tumor-fastq-list-sample-id ${sample} \
-    --enable-map-align-output true --enable-bam-indexing true --enable-duplicate-marking true \
+    --gc-metrics-enable true --enable-map-align-output true --enable-bam-indexing true --enable-duplicate-marking true \
     --enable-variant-caller true --dbsnp ${DBSNP}  --vc-somatic-hotspots ${DOCM} --vc-systematic-noise ${NoiseFile} \
     --enable-cnv true --cnv-target-bed ${ReferenceBed} --cnv-interval-width ${CNAbinsize} \
     --enable-sv true --sv-exome true --sv-output-contigs true --sv-hyper-sensitivity true \
@@ -329,6 +339,30 @@ task batch_qc {
   runtime {
     docker_image: docker
     memory: "4 G"
+    queue: queue
+    job_group: jobGroup
+  }
+  output {
+    String done = stdout()
+  }
+}
+
+task move_demux_fastq {
+  Array[String] order_by
+  String Batch
+  String DemuxFastqDir
+  String queue
+  String jobGroup
+
+  String LocalDemuxFastqDir = "/staging/runs/Chromoseq/demux_fastq/" + Batch
+
+  command {
+    if [ -n "${LocalDemuxFastqDir}" ]; then
+      /bin/mv ${LocalDemuxFastqDir} ${DemuxFastqDir}
+    fi
+  }
+  runtime {
+    docker_image: "ubuntu:xenial"
     queue: queue
     job_group: jobGroup
   }
