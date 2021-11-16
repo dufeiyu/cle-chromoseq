@@ -4,6 +4,7 @@ workflow ChromoseqAnalysis {
   String CramIndex 
   String Name
   String Gender
+  String DOB
   String Exception
   String MappingSummary
   String? CoverageSummary
@@ -266,6 +267,7 @@ workflow ChromoseqAnalysis {
     MinGeneCov=MinGeneCov,
     MinRegionCov=MinRegionCov,
     gender=Gender,
+    DOB=DOB,
     Exception=Exception,
     RefRangeJSON=RefRangeJSON,
     RunInfoString=RunInfoString,
@@ -784,6 +786,7 @@ task make_report {
   String GeneQC
   String Name
   String gender
+  String DOB
   String Exception
   String RefRangeJSON
   String RunInfoString
@@ -799,7 +802,7 @@ task make_report {
   
   command <<<
     cat ${MappingSummary} ${CoverageSummary} | grep SUMMARY | cut -d ',' -f 3,4 | sort -u > qc.txt && \
-    /opt/conda/bin/python /usr/local/bin/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} -g ${default=30 MinGeneCov} -s ${default=20 MinRegionCov} -f ${default=90 MinFracCov} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} ${gender} "${Exception}" "${RunInfoString}" ${RefRangeJSON} > "${Name}.chromoseq.txt"
+    /opt/conda/bin/python /usr/local/bin/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} -g ${default=30 MinGeneCov} -s ${default=20 MinRegionCov} -f ${default=90 MinFracCov} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} ${gender} ${DOB} "${Exception}" "${RunInfoString}" ${RefRangeJSON} > "${Name}.chromoseq.txt"
   >>>
   
   runtime {

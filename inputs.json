@@ -4,6 +4,7 @@
     "ChromoSeq.Batch": "",
     "ChromoSeq.Samples": ["",""],
     "ChromoSeq.Genders": ["",""],
+    "ChromoSeq.DOBs": ["",""],
     "ChromoSeq.Exceptions": ["",""],
     "ChromoSeq.RunInfoString": "",
     "ChromoSeq.SeqDir": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/batchdir",

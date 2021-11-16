@@ -122,6 +122,7 @@ parser.add_argument('genecov',help='Gene coverage')
 parser.add_argument('svcov',help='SV coverage')
 parser.add_argument('haplotect',help='Haplotect output')
 parser.add_argument('gender',help='Sample gender')
+parser.add_argument('DOB',help='Date of birth')
 parser.add_argument('exception',help='Exception')
 parser.add_argument('runinfostr',help='Illumina Run Information String')
 parser.add_argument('rangejsonfile',help='QCReferenceRanges.json')
@@ -142,6 +143,7 @@ genecov = args.genecov
 svcov = args.svcov
 haplotect = args.haplotect
 gender = args.gender
+DOB = args.DOB
 exception = args.exception
 run_info_str = args.runinfostr
 range_json_file = args.rangejsonfile
@@ -583,6 +585,7 @@ print("*** CHROMOSEQ CASE INFORMATION ***\n")
 print("MRN:\t" + mrn)
 print("ACCESSION:\t" + accession)
 print("SPECIMEN TYPE:\t" + specimen)
+print("DOB:\t" + DOB)
 print("SEX:\t" + gender)
 print("RUNID:\t" + run_info[0])
 print("INSTRUMENT:\t" + instrument)
