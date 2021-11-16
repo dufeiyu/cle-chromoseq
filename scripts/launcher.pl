@@ -67,7 +67,7 @@ my $json_template = File::Spec->join($git_dir, 'inputs.json');
 
 my $group  = '/cle/wdl/chromoseq';
 my $queue  = 'pathology';
-my $docker = 'registry.gsc.wustl.edu/apipe-builder/genome_perl_environment:compute1-8';
+my $docker = 'registry.gsc.wustl.edu/apipe-builder/genome_perl_environment:compute1-20';
 
 my $user_group = 'compute-duncavagee';
 
@@ -94,10 +94,15 @@ for my $row ($sheet->rows()) {
     unless ($row->[0] =~ /\d+/) {
         die "Lane number is expected, Check sample sheet spreadsheet";
     }
-    my ($lane, undef, $lib, $sex, $index1, $index2, $exception) = @$row;
+    my ($lane, undef, $lib, $DOB, $sex, $index1, $index2, $exception) = @$row;
 
     $lib =~ s/\s+//g;
-    unless ($lib =~ /^[A-Z]{4}\-\d+\-[A-Z]\d+\-\d+\-[A-Z0-9]+\-lib/) {
+    if ($lib =~ /^[A-Z]{4}\-(\d+)\-[A-Z]\d+\-\d+\-[A-Z0-9]+\-lib/) {
+        unless ((length($1) == 10 and $1 =~ /^99/) or (length($1) == 9 and $1 =~ /^1/)) {
+            die "$lib has invalid MRN: $1  MRN must be either a 10-digit number starting with 99 or a 9-digit number starting with 1";
+        }
+    }
+    else {
         die "Library name: $lib must contain MRN, accession id and specimen type";
     }
 
@@ -119,6 +124,7 @@ for my $row ($sheet->rows()) {
     $ss_fh->print("\n");
 
     $info{$lib} = {
+        DOB => $DOB,
         sex => $sex,
         exception => $exception,
     };
@@ -171,9 +177,11 @@ $inputs->{'ChromoSeq.Batch'} = $batch_name;
 my @samples;
 my @genders;
 my @exceptions;
+my @DOBs;
 
 for my $sample (sort keys %info) {
     push @samples, $sample;
+    push @DOBs, $info{$sample}->{DOB};
     push @genders, $info{$sample}->{sex};
     push @exceptions, $info{$sample}->{exception};
 }
@@ -181,6 +189,7 @@ for my $sample (sort keys %info) {
 $inputs->{'ChromoSeq.Samples'} = \@samples;
 $inputs->{'ChromoSeq.Genders'} = \@genders;
 $inputs->{'ChromoSeq.Exceptions'} = \@exceptions;
+$inputs->{'ChromoSeq.DOBs'} = \@DOBs;
 
 my $input_json = File::Spec->join($out_dir, 'inputs.json');
 my $json_fh = IO::File->new(">$input_json") or die "fail to write to $input_json";

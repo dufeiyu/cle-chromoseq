@@ -14,13 +14,10 @@ workflow ChromoSeq {
   # lane, if one is specified
   String? Lane
 
-  # array of genders. Will have to be prepared from excel spreadsheet
+  # array of genders, DOBs, sample_names, exceptions. Will have to be prepared from excel spreadsheet
   Array[String] Genders
-
-  # sample names
+  Array[String] DOBs
   Array[String] Samples
-
-  # sample exceptions
   Array[String] Exceptions
 
   # name of batch
@@ -133,6 +130,7 @@ workflow ChromoSeq {
       CramIndex=dragen_align.index,
       Name=Samples[i],
       Gender=Genders[i],
+      DOB=DOBs[i],
       Exception=Exceptions[i],
       MappingSummary=dragen_align.mapping_summary,
       CoverageSummary=dragen_align.coverage_summary,
