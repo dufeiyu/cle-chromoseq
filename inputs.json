@@ -29,7 +29,7 @@
     "ChromoSeq.mapWig": "/opt/files/map_hg38_500kb.wig",
     "ChromoSeq.ponRds": "/opt/files/nextera_hg38_500kb_median_normAutosome_median.rds_median.033020.XY_median.rds",
     "ChromoSeq.centromeres": "/opt/files/GRCh38.GCA_000001405.2_centromere_acen.txt",
-    "ChromoSeq.RefRangeJSON": "/opt/files/QCReferenceRanges.json",
+    "ChromoSeq.RefRangeJSON": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/process/git/cle-chromoseq/accessory_files/QCReferenceRanges.json",
     "ChromoSeq.genomeStyle": "UCSC",
     "ChromoSeq.genome": "hg38",
     "ChromoSeq.tmp": "/tmp",

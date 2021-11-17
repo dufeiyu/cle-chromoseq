@@ -106,6 +106,11 @@ for my $row ($sheet->rows()) {
         die "Library name: $lib must contain MRN, accession id and specimen type";
     }
 
+    unless ($DOB =~ /\d{2}\/\d{2}\/\d{4}/) {
+        die "Date of birth: $DOB has invalid format. It need be mm/dd/yyyy";
+    }
+
+
     unless ($sex =~ /^(male|female)$/) {
         die "$lib sex has to be either male or female, not:$sex";
     }
