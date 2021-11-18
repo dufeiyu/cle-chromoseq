@@ -86,15 +86,15 @@ def convert_aa(codon):
     return codon
 
 def check_qc_reference_ranges(value, minimum, maximum, unit):
-    if minimum is not '' and maximum is not '':
+    if minimum != '' and maximum != '':
         range_str = '>' + minimum + unit + ' ' + '<' + maximum + unit
         if value < int(minimum) or value > int(maximum):
             range_str = range_str + ' (!)'
-    elif minimum is not '':
+    elif minimum != '':
         range_str = '>' + minimum + unit
         if value < int(minimum):
             range_str = range_str + ' (!)'
-    elif maximum is not '':
+    elif maximum != '':
         range_str = '<' + maximum + unit
         if value > int(maximum):
             range_str = range_str + ' (!)'
@@ -241,14 +241,14 @@ for variant in genevcf:
     abundance = variant.format("VAF")[0][0] * 100
         
     csyntax = 'NA'
-    if genes[gene]['HGVSc'] is not None and genes[gene]['HGVSc'] is not '':
+    if genes[gene]['HGVSc'] is not None and genes[gene]['HGVSc'] != '':
        csyntax = genes[gene]['HGVSc'].split(":")[1]
        
     psyntax = 'NA'
-    if genes[gene]['HGVSp'] is not None and genes[gene]['HGVSp'] is not '':
+    if genes[gene]['HGVSp'] is not None and genes[gene]['HGVSp'] != '':
         psyntax = genes[gene]['HGVSp'].split(":")[1]
 
-    if psyntax is 'NA':
+    if psyntax == 'NA':
         psyntax = csyntax
        
     pmaf = genes[gene]['MAX_AF']
@@ -508,7 +508,7 @@ for v in passedvars.items():
     if isknown == 1:
         vars['knownsv'].append(out)
         
-    elif variant.INFO.get('LOG2RATIO') is not None and filter is 'PASS':
+    elif variant.INFO.get('LOG2RATIO') is not None and filter == 'PASS':
         vars['cna'].append(out)
 
     else:
