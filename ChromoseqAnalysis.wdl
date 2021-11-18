@@ -273,7 +273,6 @@ workflow ChromoseqAnalysis {
     RunInfoString=RunInfoString,
     queue=Queue,
     jobGroup=JobGroup,
-    docker=chromoseq_docker,
     tmp=tmp
   }
 
@@ -793,7 +792,6 @@ task make_report {
   String queue
   String jobGroup
   String tmp
-  String docker
   Int? MinReads
   Float? MinVAF
   Int? MinGeneCov
@@ -802,11 +800,11 @@ task make_report {
   
   command <<<
     cat ${MappingSummary} ${CoverageSummary} | grep SUMMARY | cut -d ',' -f 3,4 | sort -u > qc.txt && \
-    /opt/conda/bin/python /storage1/fs1/duncavagee/Active/SEQ/Chromoseq/process/git/cle-chromoseq/scripts/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} -g ${default=30 MinGeneCov} -s ${default=20 MinRegionCov} -f ${default=90 MinFracCov} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} ${gender} ${DOB} "${Exception}" "${RunInfoString}" ${RefRangeJSON} > "${Name}.chromoseq.txt"
+    /usr/local/bin/python /usr/local/bin/make_report.py -v ${default="0.05" MinVAF} -r ${default=5 MinReads} -g ${default=30 MinGeneCov} -s ${default=20 MinRegionCov} -f ${default=90 MinFracCov} ${Name} ${GeneVCF} ${SVVCF} ${KnownGenes} "qc.txt" ${GeneQC} ${SVQC} ${Haplotect} ${gender} ${DOB} "${Exception}" "${RunInfoString}" ${RefRangeJSON} > "${Name}.chromoseq.txt"
   >>>
   
   runtime {
-    docker_image: docker
+    docker_image: "registry.gsc.wustl.edu/mgi-cle/chromoseq-make_report:v1"
     memory: "8 G"
     queue: queue
     job_group: jobGroup

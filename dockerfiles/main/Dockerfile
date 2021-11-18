@@ -204,8 +204,8 @@ RUN wget https://github.com/Illumina/manta/releases/download/v${manta_version}/m
     tar -jxvf manta-${manta_version}.centos6_x86_64.tar.bz2 && \
     rm -rf manta-${manta_version}.centos6_x86_64/lib/python/mantaOptions.py && \
     rm -rf manta-${manta_version}.centos6_x86_64/lib/python/mantaOptions.pyc
-COPY scripts/mantaOptions.py manta-${manta_version}.centos6_x86_64/lib/python
-COPY scripts/mantaOptions.pyc manta-${manta_version}.centos6_x86_64/lib/python
+COPY ../../scripts/mantaOptions.py manta-${manta_version}.centos6_x86_64/lib/python
+COPY ../../scripts/mantaOptions.pyc manta-${manta_version}.centos6_x86_64/lib/python
 RUN mv manta-${manta_version}.centos6_x86_64 /usr/local/src/manta
 
 #
@@ -319,38 +319,38 @@ RUN cd / && \
 
 RUN mkdir /opt/files/
 
-COPY scripts/addReadCountsToVcfCRAM.py /usr/local/bin/addReadCountsToVcfCRAM.py
-COPY scripts/duphold_static /usr/local/bin/duphold_static
-COPY scripts/FilterManta.pl /usr/local/bin/FilterManta.pl
-COPY scripts/ichorToVCF.pl /usr/local/bin/ichorToVCF.pl
-COPY scripts/fixITDs.py /usr/local/bin/fixITDs.py
-COPY scripts/make_report.py /usr/local/bin/make_report.py
-COPY scripts/QC_info.pl /usr/local/bin/QC_info.pl
+COPY ../../scripts/addReadCountsToVcfCRAM.py /usr/local/bin/addReadCountsToVcfCRAM.py
+COPY ../../scripts/duphold_static /usr/local/bin/duphold_static
+COPY ../../scripts/FilterManta.pl /usr/local/bin/FilterManta.pl
+COPY ../../scripts/ichorToVCF.pl /usr/local/bin/ichorToVCF.pl
+COPY ../../scripts/fixITDs.py /usr/local/bin/fixITDs.py
+COPY ../../scripts/make_report.py /usr/local/bin/make_report.py
+COPY ../../scripts/QC_info.pl /usr/local/bin/QC_info.pl
 
-COPY accessory_files/QCReferenceRanges.json /opt/files/QCReferenceRanges.json
-COPY accessory_files/GRCh38.GCA_000001405.2_centromere_acen.txt /opt/files/GRCh38.GCA_000001405.2_centromere_acen.txt
-COPY accessory_files/gc_hg38_500kb.wig /opt/files/gc_hg38_500kb.wig
-COPY accessory_files/map_hg38_500kb.wig /opt/files/map_hg38_500kb.wig
-COPY accessory_files/myeloseq.haplotect_snppairs_hg38.041718.bed /opt/files/myeloseq.haplotect_snppairs_hg38.041718.bed
-COPY accessory_files/configMantaRegion.hg38.py.ini /opt/files/configMantaRegion.hg38.py.ini
-COPY accessory_files/configManta.hg38.py.ini /opt/files/configManta.hg38.py.ini
-COPY accessory_files/nextera_hg38_500kb_median_normAutosome_median.rds_median.033020.XY_median.rds /opt/files/nextera_hg38_500kb_median_normAutosome_median.rds_median.033020.XY_median.rds
+COPY ../../accessory_files/QCReferenceRanges.json /opt/files/QCReferenceRanges.json
+COPY ../../accessory_files/GRCh38.GCA_000001405.2_centromere_acen.txt /opt/files/GRCh38.GCA_000001405.2_centromere_acen.txt
+COPY ../../accessory_files/gc_hg38_500kb.wig /opt/files/gc_hg38_500kb.wig
+COPY ../../accessory_files/map_hg38_500kb.wig /opt/files/map_hg38_500kb.wig
+COPY ../../accessory_files/myeloseq.haplotect_snppairs_hg38.041718.bed /opt/files/myeloseq.haplotect_snppairs_hg38.041718.bed
+COPY ../../accessory_files/configMantaRegion.hg38.py.ini /opt/files/configMantaRegion.hg38.py.ini
+COPY ../../accessory_files/configManta.hg38.py.ini /opt/files/configManta.hg38.py.ini
+COPY ../../accessory_files/nextera_hg38_500kb_median_normAutosome_median.rds_median.033020.XY_median.rds /opt/files/nextera_hg38_500kb_median_normAutosome_median.rds_median.033020.XY_median.rds
 #COPY basespace_cromwell.config /opt/files/basespace_cromwell.config
 
-COPY accessory_files/all_sequences.fa.bed.gz /opt/files/all_sequences.fa.bed.gz
-COPY accessory_files/all_sequences.fa.bed.gz.tbi /opt/files/all_sequences.fa.bed.gz.tbi
+COPY ../../accessory_files/all_sequences.fa.bed.gz /opt/files/all_sequences.fa.bed.gz
+COPY ../../accessory_files/all_sequences.fa.bed.gz.tbi /opt/files/all_sequences.fa.bed.gz.tbi
 #COPY all_sequences.fa.fai /opt/files/all_sequences.fa.fai
 
-COPY accessory_files/chromoseq_genes.bed /opt/files/chromoseq_genes.bed
-COPY accessory_files/hg38.cytoBandIdeo.bed.gz /opt/files/hg38.cytoBandIdeo.bed.gz
-COPY accessory_files/hg38.cytoBandIdeo.bed.gz.tbi /opt/files/hg38.cytoBandIdeo.bed.gz.tbi
-COPY accessory_files/chromoseq_sv_filter.bedpe.gz /opt/files/chromoseq_sv_filter.bedpe.gz
-COPY accessory_files/chromoseq_translocations.bedpe /opt/files/chromoseq_translocations.bedpe
+COPY ../../accessory_files/chromoseq_genes.bed /opt/files/chromoseq_genes.bed
+COPY ../../accessory_files/hg38.cytoBandIdeo.bed.gz /opt/files/hg38.cytoBandIdeo.bed.gz
+COPY ../../accessory_files/hg38.cytoBandIdeo.bed.gz.tbi /opt/files/hg38.cytoBandIdeo.bed.gz.tbi
+COPY ../../accessory_files/chromoseq_sv_filter.bedpe.gz /opt/files/chromoseq_sv_filter.bedpe.gz
+COPY ../../accessory_files/chromoseq_translocations.bedpe /opt/files/chromoseq_translocations.bedpe
 
-COPY accessory_files/chromoseq_custom_annotations.vcf.gz /opt/files/chromoseq_custom_annotations.vcf.gz
-COPY accessory_files/chromoseq_custom_annotations.vcf.gz.tbi /opt/files/chromoseq_custom_annotations.vcf.gz.tbi
-COPY accessory_files/chromoseq_hotspot.vcf.gz /opt/files/chromoseq_hotspot.vcf.gz
-COPY accessory_files/chromoseq_hotspot.vcf.gz.tbi /opt/files/chromoseq_hotspot.vcf.gz.tbi
+COPY ../../accessory_files/chromoseq_custom_annotations.vcf.gz /opt/files/chromoseq_custom_annotations.vcf.gz
+COPY ../../accessory_files/chromoseq_custom_annotations.vcf.gz.tbi /opt/files/chromoseq_custom_annotations.vcf.gz.tbi
+COPY ../../accessory_files/chromoseq_hotspot.vcf.gz /opt/files/chromoseq_hotspot.vcf.gz
+COPY ../../accessory_files/chromoseq_hotspot.vcf.gz.tbi /opt/files/chromoseq_hotspot.vcf.gz.tbi
 
 #COPY driver.py /opt/files/driver.py
 
