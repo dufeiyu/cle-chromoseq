@@ -332,6 +332,10 @@ task batch_qc {
   String qcOut = BatchDir + "/QC_info.txt"
 
   command {
+    if [ -n "$(/bin/ls -d ${BatchDir}/TWDY-*)" ]; then
+        /bin/chmod -R 777 ${BatchDir}/TWDY-*
+    fi
+
     /usr/bin/perl /usr/local/bin/QC_info.pl "${BatchDir}/*/*.chromoseq.txt" > ${qcOut}
   }
   runtime {
