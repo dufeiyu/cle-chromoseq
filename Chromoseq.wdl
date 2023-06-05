@@ -14,6 +14,8 @@ workflow ChromoSeq {
   # lane, if one is specified
   String? Lane
 
+  String? DragenEnv
+
   # array of genders, DOBs, sample_names, exceptions. Will have to be prepared from excel spreadsheet
   Array[String] Genders
   Array[String] DOBs
@@ -29,9 +31,10 @@ workflow ChromoSeq {
   # The batch output directory
   String BatchDir = SeqDir + '/' + Batch
   
-  String DBSNP     = "/staging/runs/Chromoseq/dragen_align_inputs/hg38/dbsnp.vcf.gz"
-  String DOCM      = "/staging/runs/Chromoseq/dragen_align_inputs/hg38/docm.vcf.gz"
-  String NoiseFile = "/staging/runs/Chromoseq/dragen_align_inputs/hg38/dragen_v1.0_systematic_noise.nextera_wgs.120920.bed.gz"
+  String DBSNP     = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/dbsnp.vcf.gz"
+  String DOCM      = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/docm.vcf.gz"
+  String NoiseFile = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/dragen_v1.0_systematic_noise.nextera_wgs.120920.bed.gz"
+  String SvNoiseFile = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/WGS_v1.0.0_hg38_sv_systematic_noise.bedpe.gz"
 
   String Translocations
   String GenesBed
@@ -55,10 +58,13 @@ workflow ChromoSeq {
   String ReferenceIndex
   String ReferenceBED
 
-  String DragenReference    = "/staging/runs/Chromoseq/refdata/dragen_hg38"
-  String DragenReferenceBED = "/staging/runs/Chromoseq/refdata/dragen_hg38/all_sequences.fa.bed.gz"
+  String DragenReference    = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_hg38"
   String VEP
 
+  String adapter1
+  String adapter2
+
+  String refWig
   String gcWig
   String mapWig
   String ponRds
@@ -91,7 +97,9 @@ workflow ChromoSeq {
   String DragenQueue
 
   String chromoseq_docker
-  String DragenDocker
+  String DragenDockerImage
+  String DragenMEM
+  Int DragenCPU
 
   String DemuxFastqDir = "/scratch1/fs1/gtac-mgi/CLE/chromoseq/demux_fastq"
 
@@ -104,7 +112,10 @@ workflow ChromoSeq {
     lane=Lane,
     jobGroup=JobGroup,
     queue=DragenQueue,
-    docker=DragenDocker
+    DragenCPU=DragenCPU,
+    DragenMEM=DragenMEM,
+    DragenEnv=DragenEnv,
+    DragenDockerImage=DragenDockerImage
   }
 
   scatter(i in range(length(Samples))){
@@ -115,14 +126,17 @@ workflow ChromoSeq {
       sample=Samples[i],
       gender=Genders[i],
       Reference=DragenReference,
-      ReferenceBed=DragenReferenceBED,
+      adapter1=adapter1,
+      adapter2=adapter2,
       CNAbinsize=CNAbinsize,
       DBSNP=DBSNP,
       DOCM=DOCM,
       NoiseFile=NoiseFile,
+      SvNoiseFile=SvNoiseFile,
       jobGroup=JobGroup,
       queue=DragenQueue,
-      docker=DragenDocker
+      DragenEnv=DragenEnv,
+      DragenDockerImage=DragenDockerImage
     }
 
     call subWF.ChromoseqAnalysis {
@@ -221,10 +235,15 @@ task dragen_demux {
   String? sheet
   String? lane
 
-  String queue
-  String docker
-  String jobGroup
+  String? DragenEnv
 
+  String DragenDockerImage
+  String DragenMEM
+  Int DragenCPU
+
+  String queue
+  String jobGroup
+  
   command {
     if [ -n "${FastqList}" ]; then
       /bin/cp ${FastqList} ${LocalFastqList}
@@ -245,9 +264,10 @@ task dragen_demux {
   }
 
   runtime {
-    docker_image: docker
-    cpu: "20"
-    memory: "200 G"
+    docker_image: DragenDockerImage
+    dragen_env: DragenEnv
+    cpu: DragenCPU
+    memory: DragenMEM
     queue: queue
     job_group: jobGroup
   }
@@ -268,22 +288,39 @@ task dragen_align {
   String sample
   String gender
 
-  String Reference
-  String ReferenceBed
+  String adapter1
+  String adapter2
+
+  Int CNVmergedist
+  Int CNVfilterlength
   Int CNAbinsize
+
+  String Reference
+  
+  String refWig
+  String GeneBed
+  String SVBed
   String DBSNP
   String DOCM
   String NoiseFile
+  String POPAllele
+  String SvNoiseFile
+
+  String CovLevels = '10,20,40,60,80'
+
+  String? DragenEnv
+  String DragenDockerImage
   String queue
-  String docker
   String jobGroup
+  String DragenMEM
+  Int DragenCPU
 
   String outdir = BatchDir + "/" + sample
   String dragen_outdir = outdir + "/dragen"
   String LocalSampleDir = LocalAlignDir + "/" + sample
   String log = rootdir + "log/" + sample + "_align.log"
   
-  command {
+  command <<<
     if [ ! -d "${LocalAlignDir}" ]; then
       /bin/mkdir ${LocalAlignDir}
     fi
@@ -292,23 +329,33 @@ task dragen_align {
       /bin/mkdir ${BatchDir}
     fi
 
+    awk -v OFS="\t" '{ split($7,a,"_"); print $1,$2,$3,a[1],".",$9; print $4,$5,$6,a[2],".",$10; }' ${SVBed} | sort -u -k 1,1V -k 2,2n > sv.bed
+
     /bin/mkdir ${LocalSampleDir} && \
     /bin/mkdir ${outdir} && \
     /opt/edico/bin/dragen -r ${Reference} --sample-sex ${gender} \
+    --read-trimmers adapter --trim-adapter-read1 ${adapter1} --trim-adapter-read2 ${adapter2} \
     --tumor-fastq-list ${fastqfile} --tumor-fastq-list-sample-id ${sample} \
+    --qc-coverage-region-1 ${refWig} --qc-coverage-filters-1 'mapq<0,bq<0' \
+    --qc-coverage-region-2 ${GeneBed} --qc-coverage-reports-2 cov_report --qc-coverage-region-2-thresholds ${CovLevels} \
+    --qc-coverage-region-3 sv.bed --qc-coverage-reports-3 cov_report --qc-coverage-region-3-thresholds ${CovLevels} \
+    --qc-coverage-ignore-overlaps=true \
     --gc-metrics-enable true --enable-map-align-output true --enable-bam-indexing true --enable-duplicate-marking true \
-    --enable-variant-caller true --dbsnp ${DBSNP}  --vc-somatic-hotspots ${DOCM} --vc-systematic-noise ${NoiseFile} \
-    --enable-cnv true --cnv-target-bed ${ReferenceBed} --cnv-interval-width ${CNAbinsize} \
-    --enable-sv true --sv-exome true --sv-output-contigs true --sv-hyper-sensitivity true \
+    --enable-variant-caller true --dbsnp ${DBSNP} --vc-somatic-hotspots ${DOCM} --vc-systematic-noise ${NoiseFile} --vc-enable-triallelic-filter false --vc-combine-phased-variants-distance 3 \
+    --enable-cnv true --cnv-somatic-enable-het-calling true --cnv-enable-ref-calls false --cnv-merge-distance ${CNVmergedist} --cnv-filter-length ${CNVfilterlength} --cnv-population-b-allele-vcf ${POPAllele} \
+    --enable-sv true --sv-output-contigs true --sv-hyper-sensitivity true --sv-min-edge-observations 2 --sv-min-candidate-spanning-count 1 \
+    --sv-use-overlap-pair-evidence true --sv-enable-somatic-ins-tandup-hotspot-regions true --sv-systematic-noise ${SvNoiseFile} \
     --output-format CRAM --output-directory ${LocalSampleDir} --output-file-prefix ${sample} &> ${log} && \
     /bin/mv ${log} ./ && \
     /bin/mv ${LocalSampleDir} ${dragen_outdir}
-  }
+    
+  >>>
 
   runtime {
-    docker_image: docker
-    cpu: "20"
-    memory: "200 G"
+    docker_image: DragenDockerImage
+    dragen_env: DragenEnv
+    cpu: DragenCPU
+    memory: DragenMEM
     queue: queue
     job_group: jobGroup
   }
@@ -316,7 +363,7 @@ task dragen_align {
   output {
     File cram = "${dragen_outdir}/${sample}_tumor.cram"
     File index = "${dragen_outdir}/${sample}_tumor.cram.crai"
-    File counts = "${dragen_outdir}/${sample}.target.counts.gz"
+    File counts = "${dragen_outdir}/${sample}qc-coverage-region-1_read_cov_report.bed"
     File mapping_summary = "${dragen_outdir}/${sample}.mapping_metrics.csv"
     File coverage_summary = "${dragen_outdir}/${sample}.wgs_coverage_metrics.csv"
   }
