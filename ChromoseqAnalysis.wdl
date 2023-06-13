@@ -124,6 +124,7 @@ workflow ChromoseqAnalysis {
     mapWig=mapWig,
     ponRds=ponRds,
     centromeres=centromeres,
+    CNAbinsize=CNAbinsize,
     Name=Name,
     genomeStyle=genomeStyle,
     genome=genome,
@@ -433,13 +434,13 @@ task run_ichor {
   String mapWig
   String ponRds
   String centromeres
-  
+  Int CNAbinsize
   String? tmp
   String docker
   
   command <<<
     set -eo pipefail && \
-    zcat ${tumorCounts} | tail -n +6 | sort -k 1V,1 -k 2n,2 | awk -v window=500000 'BEGIN { chr=""; } { if ($1!=chr){ printf("fixedStep chrom=%s start=1 step=%d span=%d\n",$1,window,window); chr=$1; } print $5; }' > "${Name}.tumor.wig" && \
+    /bin/cat ${tumorCounts} | awk 'NR>1' | sort -k 1V,1 -k 2n,2 | awk -v window=${CNAbinsize} 'BEGIN { chr=""; } { if ($1!=chr){ printf("fixedStep chrom=%s start=1 step=%d span=%d\n",$1,window,window); chr=$1; } print $4; }' > "${Name}.tumor.wig" && \
     /usr/local/bin/Rscript /usr/local/bin/ichorCNA/scripts/runIchorCNA.R --id ${Name} \
     --WIG "${Name}.tumor.wig" --ploidy "c(2)" --normal "c(0.1,0.5,.85)" --maxCN 3 \
     --gcWig ${gcWig} \

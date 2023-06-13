@@ -7,6 +7,8 @@
     "ChromoSeq.DOBs": ["",""],
     "ChromoSeq.Exceptions": ["",""],
     "ChromoSeq.RunInfoString": "",
+    "ChromoSeq.adapter1": "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/t2t-chm13_adapter1.fa",
+    "ChromoSeq.adapter2": "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/t2t-chm13_adapter2.fa",
     "ChromoSeq.SeqDir": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/batchdir",
     "ChromoSeq.HaplotectBed": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/process/git/cle-chromoseq/accessory_files/myeloseq.haplotect_snppairs_hg38.041718.bed",
     "ChromoSeq.Translocations": "/opt/files/chromoseq_translocations.bedpe",
@@ -25,6 +27,7 @@
     "ChromoSeq.ReferenceIndex": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/process/refdata/hg38/all_sequences.fa.fai",
     "ChromoSeq.ReferenceBED": "/opt/files/all_sequences.fa.bed.gz",
     "ChromoSeq.VEP": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/process/VEP_cache/",
+    "ChromoSeq.refWig": "/storage1/fs1/duncavagee/Active/SEQ/Chromoseq/process/refdata/hg38/all_sequences_hg38_500kb_window.bed",
     "ChromoSeq.gcWig": "/opt/files/gc_hg38_500kb.wig",
     "ChromoSeq.mapWig": "/opt/files/map_hg38_500kb.wig",
     "ChromoSeq.ponRds": "/opt/files/nextera_hg38_500kb_median_normAutosome_median.rds_median.033020.XY_median.rds",
@@ -33,6 +36,8 @@
     "ChromoSeq.genomeStyle": "UCSC",
     "ChromoSeq.genome": "hg38",
     "ChromoSeq.tmp": "/tmp",
+    "ChromoSeq:CNVmergedist":5000000,
+    "ChromoSeq:CNVfilterlength":500000,
     "ChromoSeq.minVarFreq": 0.02,
     "ChromoSeq.MinReads": 3,
     "ChromoSeq.varscanPvalsnv": 0.01,
@@ -45,9 +50,12 @@
     "ChromoSeq.MinGeneCov": 20,
     "ChromoSeq.MinRegionCov": 20,
     "ChromoSeq.JobGroup": "/cle/wdl/chromoseq",
+    "ChromoSeq.DragenCPU": 20,
+    "ChromoSeq.DragenMEM": "200 G",
     "ChromoSeq.DragenQueue": "duncavagee",
-    "ChromoSeq.DragenDocker": "registry.gsc.wustl.edu/mgi-cle/centos7-dragen:v3.7.5",
+    "ChromoSeq.DragenDockerImage": "docker1(seqfu/centos7-dragen-4.0.3:latest)",
     "ChromoSeq.Queue": "pathology",
-    "ChromoSeq.chromoseq_docker": "registry.gsc.wustl.edu/mgi-cle/chromoseq:v1.1"
+    "ChromoSeq.DragenEnv":"LSF_DOCKER_DRAGEN=y",
+    "ChromoSeq.chromoseq_docker": "docker1(registry.gsc.wustl.edu/mgi-cle/chromoseq:v1.1)"
 }
 

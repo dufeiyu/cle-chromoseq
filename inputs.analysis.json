@@ -39,6 +39,7 @@
     "ChromoseqAnalysis.MinReads": 3,
     "ChromoseqAnalysis.varscanPvalsnv": 0.01,
     "ChromoseqAnalysis.varscanPvalindel": 0.1,
+    "ChromoseqAnalysis.CNAbinsize":500000,
     "ChromoseqAnalysis.MinCNASize":5000000,
     "ChromoseqAnalysis.MinCNAabund":10.0,
     "ChromoseqAnalysis.MinValidatedVAF": 0.05,
