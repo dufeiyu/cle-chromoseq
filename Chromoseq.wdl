@@ -31,10 +31,12 @@ workflow ChromoSeq {
   # The batch output directory
   String BatchDir = SeqDir + '/' + Batch
   
-  String DBSNP     = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/dbsnp.vcf.gz"
-  String DOCM      = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/docm.vcf.gz"
-  String NoiseFile = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/dragen_v1.0_systematic_noise.nextera_wgs.120920.bed.gz"
+  String DBSNP       = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/dbsnp.vcf.gz"
+  String DOCM        = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/docm.vcf.gz"
+  String POPAllele   = "/staging/runs/Chromoseq/dragen_align_inputs/hg38/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
+  String NoiseFile   = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/dragen_v1.0_systematic_noise.nextera_wgs.120920.bed.gz"
   String SvNoiseFile = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/WGS_v1.0.0_hg38_sv_systematic_noise.bedpe.gz"
+  String NirvanaDB   = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/nirvana_annotation_data"
 
   String Translocations
   String GenesBed
@@ -58,7 +60,7 @@ workflow ChromoSeq {
   String ReferenceIndex
   String ReferenceBED
 
-  String DragenReference    = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_hg38"
+  String DragenReference    = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen393_hg38"
   String VEP
 
   String adapter1
@@ -84,6 +86,8 @@ workflow ChromoSeq {
   Int CNAbinsize = 500000
   Int MinCNASize = 5000000
   Float MinCNAabund = 10.0
+  Int CNVmergedist
+  Int CNVfilterlength
 
   Int MinValidatedReads
   Float MinValidatedVAF
@@ -128,13 +132,21 @@ workflow ChromoSeq {
       Reference=DragenReference,
       adapter1=adapter1,
       adapter2=adapter2,
-      CNAbinsize=CNAbinsize,
+      refWig=refWig,
+      GeneBed=GenesBed,
+      SVBed=Translocations,
+      CNVmergedist=CNVmergedist,
+      CNVfilterlength=CNVfilterlength,
+      POPAllele=POPAllele,
+      NirvanaDB=NirvanaDB,
       DBSNP=DBSNP,
       DOCM=DOCM,
       NoiseFile=NoiseFile,
       SvNoiseFile=SvNoiseFile,
       jobGroup=JobGroup,
       queue=DragenQueue,
+      DragenCPU=DragenCPU,
+      DragenMEM=DragenMEM,
       DragenEnv=DragenEnv,
       DragenDockerImage=DragenDockerImage
     }
@@ -293,7 +305,6 @@ task dragen_align {
 
   Int CNVmergedist
   Int CNVfilterlength
-  Int CNAbinsize
 
   String Reference
   
@@ -302,6 +313,7 @@ task dragen_align {
   String SVBed
   String DBSNP
   String DOCM
+  String NirvanaDB
   String NoiseFile
   String POPAllele
   String SvNoiseFile
@@ -342,6 +354,7 @@ task dragen_align {
     --qc-coverage-ignore-overlaps=true \
     --gc-metrics-enable true --enable-map-align-output true --enable-bam-indexing true --enable-duplicate-marking true \
     --enable-variant-caller true --dbsnp ${DBSNP} --vc-somatic-hotspots ${DOCM} --vc-systematic-noise ${NoiseFile} --vc-enable-triallelic-filter false --vc-combine-phased-variants-distance 3 \
+    --enable-variant-annotation true --variant-annotation-assembly GRCh38 --variant-annotation-data ${NirvanaDB} \
     --enable-cnv true --cnv-somatic-enable-het-calling true --cnv-enable-ref-calls false --cnv-merge-distance ${CNVmergedist} --cnv-filter-length ${CNVfilterlength} --cnv-population-b-allele-vcf ${POPAllele} \
     --enable-sv true --sv-output-contigs true --sv-hyper-sensitivity true --sv-min-edge-observations 2 --sv-min-candidate-spanning-count 1 \
     --sv-use-overlap-pair-evidence true --sv-enable-somatic-ins-tandup-hotspot-regions true --sv-systematic-noise ${SvNoiseFile} \
@@ -363,7 +376,7 @@ task dragen_align {
   output {
     File cram = "${dragen_outdir}/${sample}_tumor.cram"
     File index = "${dragen_outdir}/${sample}_tumor.cram.crai"
-    File counts = "${dragen_outdir}/${sample}qc-coverage-region-1_read_cov_report.bed"
+    File counts = "${dragen_outdir}/${sample}.qc-coverage-region-1_read_cov_report.bed"
     File mapping_summary = "${dragen_outdir}/${sample}.mapping_metrics.csv"
     File coverage_summary = "${dragen_outdir}/${sample}.wgs_coverage_metrics.csv"
   }
@@ -411,7 +424,7 @@ task move_demux_fastq {
     fi
   }
   runtime {
-    docker_image: "ubuntu:xenial"
+    docker_image: "docker1(ubuntu:xenial)"
     queue: queue
     job_group: jobGroup
   }
@@ -432,7 +445,7 @@ task remove_rundir {
     fi
   }
   runtime {
-    docker_image: "ubuntu:xenial"
+    docker_image: "docker1(ubuntu:xenial)"
     queue: queue
     job_group: jobGroup
   }
