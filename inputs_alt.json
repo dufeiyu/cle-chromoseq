@@ -51,9 +51,10 @@
     "ChromoSeq.MinRegionCov": 20,
     "ChromoSeq.JobGroup": "/cle/wdl/chromoseq",
     "ChromoSeq.DragenCPU": 20,
-    "ChromoSeq.DragenMEM": "200 G",
-    "ChromoSeq.DragenQueue": "duncavagee",
-    "ChromoSeq.DragenDockerImage": "docker1(seqfu/centos7-dragen-4.0.3:latest)",
+    "ChromoSeq.DragenMEM": "400 G",
+    "ChromoSeq.DragenQueue": "dragen",
+    "ChromoSeq.DragenDockerImage": "gtac-mgi-dragen(seqfu/oracle8-dragen-4.0.3:latest)",
+    "ChromoSeq.DragenEnv":"LSF_DOCKER_DRAGEN=y",
     "ChromoSeq.Queue": "dspencer",
     "ChromoSeq.chromoseq_docker": "docker1(registry.gsc.wustl.edu/mgi-cle/chromoseq:v1.1)"
 }
