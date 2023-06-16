@@ -33,7 +33,7 @@ workflow ChromoSeq {
   
   String DBSNP       = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/dbsnp.vcf.gz"
   String DOCM        = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/docm.vcf.gz"
-  String POPAllele   = "/staging/runs/Chromoseq/dragen_align_inputs/hg38/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
+  String POPAllele   = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
   String NoiseFile   = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/dragen_v1.0_systematic_noise.nextera_wgs.120920.bed.gz"
   String SvNoiseFile = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/WGS_v1.0.0_hg38_sv_systematic_noise.bedpe.gz"
   String NirvanaDB   = "/storage1/fs1/gtac-mgi/Active/CLE/reference/dragen_align_inputs/hg38/nirvana_annotation_data"
