@@ -214,19 +214,14 @@ workflow ChromoSeq {
     docker=chromoseq_docker
   }
 
-  call move_demux_fastq {
-    input: order_by=ChromoseqAnalysis.all_done,
-    Batch=Batch,
-    DemuxFastqDir=DemuxFastqDir,
-    queue=DragenQueue,
-    jobGroup=JobGroup
-  }
-
-  call remove_rundir {
-    input: order_by=ChromoseqAnalysis.all_done,
-    rundir=RunDir,
-    queue=DragenQueue,
-    jobGroup=JobGroup
+  if (defined(SampleSheet)) {
+    call move_demux_fastq {
+      input: order_by=ChromoseqAnalysis.all_done,
+      Batch=Batch,
+      DemuxFastqDir=DemuxFastqDir,
+      queue=DragenQueue,
+      jobGroup=JobGroup
+    }
   }
 }
 
@@ -421,27 +416,6 @@ task move_demux_fastq {
   command {
     if [ -n "${LocalDemuxFastqDir}" ]; then
       /bin/mv ${LocalDemuxFastqDir} ${DemuxFastqDir}
-    fi
-  }
-  runtime {
-    docker_image: "docker1(ubuntu:xenial)"
-    queue: queue
-    job_group: jobGroup
-  }
-  output {
-    String done = stdout()
-  }
-}
-
-task remove_rundir {
-  Array[String] order_by
-  String? rundir
-  String queue
-  String jobGroup
-  
-  command {
-    if [ -n "${rundir}" ]; then 
-      /bin/rm -Rf ${rundir}
     fi
   }
   runtime {
