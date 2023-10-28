@@ -32,11 +32,11 @@ my $json_template = File::Spec->join($git_dir, 'inputs.analysis.json');
 
 my $group  = '/cle/wdl/chromoseq';
 my $queue  = 'dspencer';
-my $docker = 'registry.gsc.wustl.edu/apipe-builder/genome_perl_environment:compute1-20';
+my $docker = 'mgibio/genome_perl_environment:compute1-20';
 
 my $user_group = 'compute-gtac-mgi';
 
-my $main_json = File::Spec->join($dir, 'test_inputs.json');  #Sometimes only part of cases need run subWF
+my $main_json = File::Spec->join($dir, 'inputs.json');  #Sometimes only part of cases need run subWF
 die "$main_json is not valid" unless -s $main_json;
 
 my $main_inputs = from_json(`cat $main_json`);
@@ -65,7 +65,7 @@ for my $case_dir (glob("$dir/TW*")) {
     $inputs->{'ChromoseqAnalysis.CramIndex'}      = File::Spec->join($dragen_dir, $case_name.'_tumor.cram.crai'); 
     $inputs->{'ChromoseqAnalysis.MappingSummary'} = File::Spec->join($dragen_dir, $case_name.'.mapping_metrics.csv');
     $inputs->{'ChromoseqAnalysis.CoverageSummary'}= File::Spec->join($dragen_dir, $case_name.'.wgs_coverage_metrics.csv');
-    $inputs->{'ChromoseqAnalysis.TumorCounts'}    = File::Spec->join($dragen_dir, $case_name.'.target.counts.gz');
+    $inputs->{'ChromoseqAnalysis.TumorCounts'}    = File::Spec->join($dragen_dir, $case_name.'.qc-coverage-region-1_read_cov_report.bed');
 
     $inputs->{'ChromoseqAnalysis.Name'}           = $case_name;
     $inputs->{'ChromoseqAnalysis.OutputDir'}      = $case_dir;
