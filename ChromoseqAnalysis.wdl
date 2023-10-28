@@ -763,7 +763,7 @@ task run_haplotect {
      >>>
 
      runtime {
-             docker_image: "docker1(registry.gsc.wustl.edu/mgi-cle/haplotect:0.3)"
+             docker_image: "docker1(abelhj/haplotect:0.3)"
              cpu: "1"
              memory: "8 G"
              queue: queue
@@ -805,7 +805,7 @@ task make_report {
   >>>
   
   runtime {
-    docker_image: "docker1(registry.gsc.wustl.edu/mgi-cle/chromoseq-make_report:v1)"
+    docker_image: "docker1(mgibio/chromoseq-make_report:v1)"
     memory: "8 G"
     queue: queue
     job_group: jobGroup
@@ -826,7 +826,7 @@ task make_report_json {
     /usr/local/bin/chromoseq_to_json ${report} > "${Name}.chromoseq.json"
   }
   runtime {
-    docker_image: "docker1(registry.gsc.wustl.edu/mgi-cle/chromoseq-json:v1)"
+    docker_image: "docker1(seqfu/chromoseq-json)"
     memory: "4 G"
     queue: queue
     job_group: jobGroup
