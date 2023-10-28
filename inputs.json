@@ -56,6 +56,6 @@
     "ChromoSeq.DragenDockerImage": "gtac-mgi-dragen(seqfu/oracle8-dragen-4.0.3:latest)",
     "ChromoSeq.DragenEnv":"LSF_DOCKER_DRAGEN=y",
     "ChromoSeq.Queue": "dspencer",
-    "ChromoSeq.chromoseq_docker": "docker1(registry.gsc.wustl.edu/mgi-cle/chromoseq:v1.1)"
+    "ChromoSeq.chromoseq_docker": "docker1(mgibio/chromoseq:v1.1)"
 }
 

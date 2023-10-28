@@ -48,7 +48,7 @@
     "ChromoseqAnalysis.MinGeneCov": 20,
     "ChromoseqAnalysis.MinRegionCov": 20,
     "ChromoseqAnalysis.JobGroup": "/cle/wdl/chromoseq",
-    "ChromoseqAnalysis.Queue": "pathology",
-    "ChromoseqAnalysis.chromoseq_docker": "registry.gsc.wustl.edu/mgi-cle/chromoseq:v1.1"
+    "ChromoseqAnalysis.Queue": "gtac-mgi",
+    "ChromoseqAnalysis.chromoseq_docker": "docker1(mgibio/chromoseq:v1.1)"
 }
 
